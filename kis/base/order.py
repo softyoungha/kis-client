@@ -1,35 +1,66 @@
 from functools import wraps
-from typing import Optional, Dict, Callable, Tuple, TypeVar, Union, Any, overload
+from typing import Optional, Dict, Callable, Tuple, TypeVar, Union, Any, Type, overload
 
-from kis.client.schema.response import ResponseData, ResponseDataDetail
-from kis.exceptions import KISBadArguments
-from typing import Type, List
 from pydantic import BaseModel
-from . import KisClientBase
 
-DataSchema = TypeVar("DataSchema", bound=Type[BaseModel])
+from kis.exceptions import KISSessionNotFound
+from .schema import ResponseData
+from .client import KisClientBase
+
+DataSchema = TypeVar("DataSchema", bound=BaseModel)
+OrderFunc = Callable[..., Tuple[dict, dict, dict]]
 
 
-class Order:
-    # order
-    OriginReturn = TypeVar("OriginReturn", bound=Tuple[dict, dict, dict])
-    OriginFunc = Callable[..., OriginReturn]
-    NewReturn = Union[
-        Dict[str, Any],
-        ResponseData[DataSchema],
-    ]
-    NewFunc = Callable[..., NewReturn]
+@overload
+def order(
+        url: str,
+        **kwargs
+) -> Callable[[OrderFunc], Dict[str, Any]]:
+    ...
+
+
+@overload
+def order(
+        url: str,
+        data_class: Type[DataSchema]
+) -> Callable[[OrderFunc], ResponseData[DataSchema]]:
+    ...
 
 
 def order(
         url: str,
-        data_class: Optional[DataSchema] = None
-) -> Callable[[Order.OriginFunc], Order.NewFunc]:
-    def decorator(func: Order.OriginFunc) -> Order.NewFunc:
+        data_class=None
+):
+    def decorator(func: OrderFunc):
         @wraps(func)
-        def wrapper(client: KisClientBase, *args, **kwargs):
-            headers, params, body = func(client, *args, **kwargs)
-            res = client.session.post(
+        def wrapper(*args, **kwargs):
+            session = None
+            for arg in args:
+                if isinstance(arg, KisClientBase):
+                    # if KisClientBase is passed as first argument
+                    client = arg
+                    session = client.session
+                    break
+                try:
+                    # if Price, Trading, Balance are passed as first argument
+                    client = getattr(arg, "client")
+                    if isinstance(client, KisClientBase):
+                        session = client.session
+                        break
+                except AttributeError:
+                    continue
+
+            if session:
+                raise KISSessionNotFound()
+
+            headers, params, body = func(*args, **kwargs)
+
+            # get hash key
+            hash_key = session.get_hash_key(body).hash
+            headers.update({"hashkey": hash_key})
+
+            # post
+            res = session.post(
                 url,
                 headers=headers or None,
                 params=params or None,
