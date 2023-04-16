@@ -33,3 +33,7 @@ class KISBadArguments(KISModuleError):
 
 class KISSessionNotFound(KISModuleError):
     msg = "session을 찾을 수 없습니다."
+
+
+class KISNoData(KISModuleError):
+    msg = "데이터가 없습니다."

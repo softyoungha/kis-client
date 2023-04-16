@@ -1,273 +1,158 @@
-from datetime import datetime, date, time
-from pydantic import BaseModel, Field, validator
 from typing import Optional
+from datetime import datetime, date
+from pydantic import BaseModel, Field, validator, root_validator
+from kis.enum import Exchange, Sign
 
 
 class FetchPrice(BaseModel):
     """
-    :reference: https://me2.kr/HNVld
+    :reference: https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_3eeac674-072d-4674-a5a7-f0ed01194a81
     """
-    # about prices
-    price_upper_bound: float = Field(alias="stck_mxpr", title="상한가", example=80900)
-    price_highest: float = Field(alias="stck_hgpr", title="최고가", example=65200)
-    price_current: float = Field(alias="stck_prpr", title="현재가", example=65000)
-    price_lowest: float = Field(alias="stck_lwpr", title="최저가", example=63800)
-    price_lower_bound: float = Field(alias="stck_llam", title="하한가", example=43700)
-    price_open: float = Field(alias="stck_oprc", title="시가", example=63800)
-    price_standard: float = Field(alias="stck_sdpr", title="기준가(전일 종가)", example=62300)
 
-    # about stock
-    bstp_kor_isnm: str = Field(alias="bstp_kor_isnm", title="업종 한글 종목명", example='전기.전자')
-    symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example='005930')
-    market_name: str = Field(alias="rprs_mrkt_kor_name", title="대표 시장 한글명", example='KOSPI200')
-    hts_market_cap: int = Field(alias="hts_avls", title="HTS 시가총액", example=3880359)
-    bps: float = Field(alias="bps", title="BPS", example=50817.00)
-    eps: float = Field(alias="eps", title="EPS", example=8057.00)
-    pbr: float = Field(alias="pbr", example='1.28')
-    per: float = Field(alias="per", example='8.07')
+    exchange: Exchange = Field(title="국내종목코드")
+    symbol: str = Field(title="실시간조회종목코드")
+    current: float = Field(alias="last", title="현재가")
+    base: float = Field(alias="base", title="전일종가")
+    volume: int = Field(alias="tvol", title="거래량", description="당일 조회시점까지 전체 거래량")
+    total_amount: float = Field(alias="tamt", title="거래대금", description="당일 조회시점까지 전체 거래금액")
+    float_point: int = Field(alias="zdiv", title="소수점자리수")
+    x_volume: float = Field(alias="pvol", title="전일거래량")
+    diff_sign: Sign = Field(alias="sign", title="대비기호(전일 대비 부호)")
+    diff_price: float = Field(alias="diff", title="대비", description="현재가 - 전일종가")
+    order_state: str = Field(alias="ordy", title="매수가능여부", description="매수주문 가능 종목 여부")
+    _rsym: str = Field(alias="rsym", title="실시간조회종목코드")
 
-    prev_vs_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
-    prev_vs_volume_rate: float = Field(alias="prdy_vrss_vol_rate", example=183.26)
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
+    @root_validator(pre=True)
+    def set_exchange_and_symbol(cls, values: dict):
+        # rsym = D+시장구분(3자리)+종목코드
+        rsym = values.get("rsym")
+        values.update(exchange=Exchange(rsym[1:4]).name, symbol=rsym[4:])
+        return values
 
-    # etc. if you want some column, you can rename it
-    iscd_stat_cls_code: str = Field(alias="iscd_stat_cls_code", title="종목 상태 구분 코드", example='55')
-    marg_rate: float = Field(alias="marg_rate", title="증거금 비율", example=20.00)
-    temp_stop_yn: str = Field(alias="temp_stop_yn", example='N')
-    acml_tr_pbmn: int = Field(alias="acml_tr_pbmn", example=1778208943700)
-    acml_vol: int = Field(alias="acml_vol", example=27476120)
-    aspr_unit: int = Field(alias="aspr_unit", example=100)
-    clpr_rang_cont_yn: str = Field(alias="clpr_rang_cont_yn", example='N')
-    cpfn: int = Field(alias="cpfn", example=7780)
-    cpfn_cnnm: str = Field(alias="cpfn_cnnm", example='7,780 억')
-    crdt_able_yn: str = Field(alias="crdt_able_yn", example='Y')
-    d250_hgpr: int = Field(alias="d250_hgpr", example=69000)
-    d250_hgpr_date: str = Field(alias="d250_hgpr_date", example='20220413')
-    d250_hgpr_vrss_prpr_rate: float = Field(alias="d250_hgpr_vrss_prpr_rate", example=-5.80)
-    d250_lwpr: int = Field(alias="d250_lwpr", example=51800)
-    d250_lwpr_date: str = Field(alias="d250_lwpr_date", example='20220930')
-    d250_lwpr_vrss_prpr_rate: float = Field(alias="d250_lwpr_vrss_prpr_rate", example=25.48)
-    dmrs_val: int = Field(alias="dmrs_val", example=62950)
-    dmsp_val: int = Field(alias="dmsp_val", example=61650)
-    dryy_hgpr_date: str = Field(alias="dryy_hgpr_date", example='20230407')
-    dryy_hgpr_vrss_prpr_rate: float = Field(alias="dryy_hgpr_vrss_prpr_rate", example=-0.31)
-    dryy_lwpr_date: str = Field(alias="dryy_lwpr_date", example='20230103')
-    dryy_lwpr_vrss_prpr_rate: float = Field(alias="dryy_lwpr_vrss_prpr_rate", example=19.27)
-    elw_pblc_yn: str = Field(alias="elw_pblc_yn", example='Y')
-    fcam_cnnm: int = Field(alias="fcam_cnnm", example=100)
-    frgn_hldn_qty: int = Field(alias="frgn_hldn_qty", example=3064926246)
-    frgn_ntby_qty: int = Field(alias="frgn_ntby_qty", example=14429002)
-    grmn_rate_cls_code: str = Field(alias="grmn_rate_cls_code", example='40')
-    hts_deal_qty_unit_val: int = Field(alias="hts_deal_qty_unit_val", example=1)
-    hts_frgn_ehrt: float = Field(alias="hts_frgn_ehrt", example=51.34)
-    invt_caful_yn: str = Field(alias="invt_caful_yn", example='N')
-    last_ssts_cntg_qty: int = Field(alias="last_ssts_cntg_qty", example=499171)
-    lstn_stcn: int = Field(alias="lstn_stcn", example=5969782550)
-    mrkt_warn_cls_code: str = Field(alias="mrkt_warn_cls_code", example='00')
-    oprc_rang_cont_yn: str = Field(alias="oprc_rang_cont_yn", example='N')
-    ovtm_vi_cls_code: str = Field(alias="ovtm_vi_cls_code", example='N')
-    pgtr_ntby_qty: int = Field(alias="pgtr_ntby_qty", example=11678793)
-    pvt_frst_dmrs_prc: int = Field(alias="pvt_frst_dmrs_prc", example=63166)
-    pvt_frst_dmsp_prc: int = Field(alias="pvt_frst_dmsp_prc", example=61866)
-    pvt_pont_val: int = Field(alias="pvt_pont_val", example=62733)
-    pvt_scnd_dmrs_prc: int = Field(alias="pvt_scnd_dmrs_prc", example=64033)
-    pvt_scnd_dmsp_prc: int = Field(alias="pvt_scnd_dmsp_prc", example=61433)
-    rstc_wdth_prc: int = Field(alias="rstc_wdth_prc", example=18600)
-    short_over_yn: str = Field(alias="short_over_yn", example='N')
-    sltr_yn: str = Field(alias="sltr_yn", example='N')
-    ssts_yn: str = Field(alias="ssts_yn", example='Y')
-    stac_month: str = Field(alias="stac_month", example='12')
-    stck_dryy_hgpr: int = Field(alias="stck_dryy_hgpr", example=65200)
-    stck_dryy_lwpr: int = Field(alias="stck_dryy_lwpr", example=54500)
-    stck_fcam: str = Field(alias="stck_fcam", example='100')
-    stck_sspr: int = Field(alias="stck_sspr", example=49840)
-    vi_cls_code: str = Field(alias="vi_cls_code", example='N')
-    vol_tnrt: float = Field(alias="vol_tnrt", example=0.46)
-    w52_hgpr: float = Field(alias="w52_hgpr", example=69000)
-    w52_hgpr_date: str = Field(alias="w52_hgpr_date", example='20220413')
-    w52_hgpr_vrss_prpr_ctrt: float = Field(alias="w52_hgpr_vrss_prpr_ctrt", example=-5.80)
-    w52_lwpr: int = Field(alias="w52_lwpr", example=51800)
-    w52_lwpr_date: str = Field(alias="w52_lwpr_date", example='20220930')
-    w52_lwpr_vrss_prpr_ctrt: float = Field(alias="w52_lwpr_vrss_prpr_ctrt", example=25.48)
-    wghn_avrg_stck_prc: float = Field(alias="wghn_avrg_stck_prc", example=64718.35)
-    whol_loan_rmnd_rate: float = Field(alias="whol_loan_rmnd_rate", example=0.07)
-
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
-
-    def __repr__(self):
-        return (
-            f"FetchPrice(symbol='{self.symbol}', "
-            f"current={self.price_current})"
-        )
+    @validator("diff_sign", pre=True)
+    def set_diff_sign(cls, diff_sign: str):
+        return Sign.from_value(diff_sign)
 
 
-class FetchPricesByMinutesSummary(BaseModel):
+class FetchPriceDetail(BaseModel):
     """
-    :reference: https://me2.kr/MZUXv
+    :reference: https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_3eeac674-072d-4674-a5a7-f0ed01194a81
     """
-    symbol_korean: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example='삼성전자')
-    prev_vs_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
-    stck_prdy_clpr: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=62300)
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1778208943700)
-    cumulative_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
-    current: float = Field(alias="stck_prpr", title="현재가", example=65000)
 
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
+    exchange: Exchange = Field(title="국내종목코드")
+    symbol: str = Field(title="실시간조회종목코드")
+    current: float = Field(alias="last", title="현재가")
+    base: float = Field(alias="base", title="전일종가")
+    open: float = Field(alias="open", title="시가")
+    high: float = Field(alias="high", title="고가")
+    low: float = Field(alias="low", title="저가")
+    total_volume: int = Field(alias="tvol", title="거래량")
+    total_amount: float = Field(alias="tamt", title="거래대금")
+    float_point: int = Field(alias="zdiv", title="소수점자리수")
+    x_volume: float = Field(alias="pvol", title="전일거래량")
+    market_cap: float = Field(alias="tomv", title="시가총액")
+    x_amount: float = Field(alias="pamt", title="전일거래대금")
+    per: float = Field(alias="perx", title="PER")
+    pbr: float = Field(alias="pbrx", title="PBR")
+    eps: float = Field(alias="epsx", title="EPS")
+    bps: float = Field(alias="bpsx", title="BPS")
+    price_upper_bound: float = Field(alias="uplp", title="상한가")
+    price_lower_bound: float = Field(alias="dnlp", title="하한가")
+    high_price_52w: float = Field(alias="h52p", title="52주최고가")
+    high_date_52w: date = Field(alias="h52d", title="52주최고일자")
+    low_price_52w: float = Field(alias="l52p", title="52주최저가")
+    low_date_52w: date = Field(alias="l52d", title="52주최저일자")
+    shares: float = Field(alias="shar", title="상장주수")
+    capital: float = Field(alias="mcap", title="자본금")
+    currency: str = Field(alias="curr", title="통화")
+    unit: int = Field(alias="vnit", title="매매단위")
+    t_xprc: float = Field(alias="t_xprc", title="원환산당일가격")
+    t_xdif: float = Field(alias="t_xdif", title="원환산당일대비")
+    t_xrat: float = Field(alias="t_xrat", title="원환산당일등락")
+    p_xprc: float = Field(alias="p_xprc", title="원환산전일가격")
+    p_xdif: float = Field(alias="p_xdif", title="원환산전일대비")
+    p_xrat: float = Field(alias="p_xrat", title="원환산전일등락")
+    t_rate: float = Field(alias="t_rate", title="당일환율")
+    p_rate: Optional[float] = Field(alias="p_rate", title="전일환율")
+    t_xsgn: str = Field(alias="t_xsgn", title="원환산당일기호")
+    p_xsng: str = Field(alias="p_xsng", title="원환산전일기호")
+    tick_size: str = Field(alias="e_hogau", title="호가단위")
+    sector: str = Field(alias="e_icod", title="업종(섹터)")
+    face_value: float = Field(alias="e_parp", title="액면가")
+    order_state: str = Field(
+        alias="e_ordyn",
+        title="거래가능여부",
+        description="매수주문 가능 종목 여부. '매매 불가'/'매매 가능'"
+    )
+    etp_name: str = Field(alias="etyp_nm", title="ETP 분류명")
+    _rsym: str = Field(alias="rsym", title="실시간조회종목코드")
 
-    def __repr__(self):
-        return (
-            f"FetchPricesSummary(symbol_korean='{self.symbol_korean}', "
-            f"current={self.current})"
-        )
+    @root_validator(pre=True)
+    def set_exchange_and_symbol(cls, values: dict):
+        # rsym = D+시장구분(3자리)+종목코드
+        rsym = values.get("rsym")
+        values.update(exchange=Exchange(rsym[1:4]).name, symbol=rsym[4:])
+        return values
 
+    @validator("high_date_52w", "low_date_52w", pre=True)
+    def set_date(cls, date_str: str):
+        return datetime.strptime(date_str, "%Y%m%d").date()
 
-class FetchPriceByMinutesHistory(BaseModel):
-    """
-    :reference: https://me2.kr/MZUXv
-    """
-    business_date: date = Field(alias="stck_bsop_date", title="주식 영업 일자", example="20230407")
-    execution_time: time = Field(alias="stck_cntg_hour", title="주식 체결 시간", example="123000")
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
-    volume: int = Field(alias="cntg_vol", title="체결 거래량", example=27099)
-    highest: float = Field(alias="stck_hgpr", title="최고가", example=65200)
-    current: float = Field(alias="stck_prpr", title="현재가", example=65000)
-    lowest: float = Field(alias="stck_lwpr", title="최저가", example=63800)
-    open: float = Field(alias="stck_oprc", title="시가", example=63800)
-
-    KEY = "stck_bsop_date"
-
-    @validator("business_date", pre=True)
-    def set_business_date(cls, business_date: str) -> date:
-        return datetime.strptime(business_date, "%Y%m%d").date()
-
-    @validator("execution_time", pre=True)
-    def set_execution_time(cls, execution_time: str) -> time:
-        return datetime.strptime(execution_time, "%H%M%S").time()
-
-    @property
-    def full_execution_time(self) -> datetime:
-        return datetime.combine(self.business_date, self.execution_time)
-
-    def __repr__(self):
-        return (
-            f"FetchPricesHistory("
-            f"datetime='{self.full_execution_time.strftime('%Y-%m-%d %H:%M:%S')}', "
-            f"current={self.current}, "
-            f"volume={self.volume})"
-        )
+    @validator("p_rate", pre=True)
+    def validate_p_rate(cls, p_rate: str):
+        if not p_rate:
+            return None
+        return float(p_rate)
 
 
 class FetchOHLCVSummary(BaseModel):
     """
-
+    https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_0e9fb2ba-bbac-4735-925a-a35e08c9a790
     """
-    # 종목 정보
-    symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example="005930")
-    symbol_korean: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example="삼성전자")
-    face_value: int = Field(alias="stck_fcam", title="주식 액면가", example=100)
-    listed_shares: int = Field(alias="lstn_stcn", title="상장 주수", example=5969782550)
-    capital: int = Field(alias="cpfn", title="자본금", example=596978255000)
-    market_cap: int = Field(alias="hts_avls", title="시가총액", example=3870000000000)
-    per: float = Field(alias="per", title="PER", example=0.00)
-    eps: float = Field(alias="eps", title="EPS", example=0)
-    pbr: float = Field(alias="pbr", title="PBR", example=0.00)
-    itewhol_loan_rmnd_ratem: Optional[float] = Field(alias="itewhol_loan_rmnd_ratem", title="전체 융자 잔고 비율", example=0.00)
+    exchange: Exchange = Field(title="국내종목코드")
+    symbol: str = Field(title="실시간조회종목코드")
+    float_point: int = Field(alias="zdiv", title="소수점자리수")
+    record_count: int = Field(alias="nrec", title="총 레코드수")
+    _rsym: str = Field(alias="rsym", title="실시간조회종목코드")
 
-    # 가격 정보
-    price_upper_bound: int = Field(alias="stck_mxpr", title="상한가", example=0)
-    price_highest: int = Field(alias="stck_hgpr", title="최고가", example=65000)
-    price_current: int = Field(alias="stck_prpr", title="주식 현재가", example=65000)
-    price_lowest: int = Field(alias="stck_lwpr", title="최저가", example=63800)
-    price_lower_bound: int = Field(alias="stck_llam", title="하한가", example=0)
-    price_open: int = Field(alias="stck_oprc", title="시가", example=63800)
-    price_standard: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=61000)
-    cumulative_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
-    ask_price: int = Field(alias="askp", title="매도호가", example=65000)
-    bid_price: int = Field(alias="bidp", title="매수호가", example=64900)
-    volume_rotation: float = Field(alias="vol_tnrt", title="거래량 회전율", example=0.00)
-
-    # 전일 정보
-    prev_open: int = Field(alias="stck_prdy_oprc", title="주식 전일 시가", example=63800)
-    prev_highest: int = Field(alias="stck_prdy_hgpr", title="주식 전일 최고가", example=64400)
-    prev_lowest: int = Field(alias="stck_prdy_lwpr", title="주식 전일 최저가", example=63000)
-    prev_volume: int = Field(alias="prdy_vol", title="전일 거래량", example=27099)
-
-    # 전일 대비
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
-    prev_vs_volume: int = Field(alias="prdy_vrss_vol", title="전일 대비 거래량", example=27099)
-    prev_vs_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
-
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
+    @root_validator(pre=True)
+    def set_exchange_and_symbol(cls, values: dict):
+        # rsym = D+시장구분(3자리)+종목코드
+        rsym = values.get("rsym")
+        values.update(exchange=Exchange(rsym[1:4]).name, symbol=rsym[4:])
+        return values
 
 
 class FetchOHLCVHistory(BaseModel):
     """
-    reference: https://me2.kr/MZUXv
+    reference: https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_0e9fb2ba-bbac-4735-925a-a35e08c9a790
     """
-    business_date: date = Field(alias="stck_bsop_date", title="주식 영업 일자", example="20210601")
-    standard: int = Field(alias="stck_clpr", title="주식 종가", example=65000)
-    open: int = Field(alias="stck_oprc", title="주식 시가", example=63800)
-    highest: int = Field(alias="stck_hgpr", title="주식 최고가", example=65000)
-    lowest: int = Field(alias="stck_lwpr", title="주식 최저가", example=63800)
-    cumulative_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="1")
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1200)
+    business_date: date = Field(alias="xymd", title="일자(YYYYMMDD)")
+    close: float = Field(alias="clos", title="종가")
+    open: float = Field(alias="open", title="시가")
+    high: float = Field(alias="high", title="고가")
+    low: float = Field(alias="low", title="저가")
+    volume: int = Field(alias="tvol", title="거래량")
+    amount: float = Field(alias="tamt", title="거래대금")
+    diff_price: float = Field(alias="diff", title="대비", description="해당 일자의 종가와 해당 전일 종가의 차이 (해당일 종가-해당 전일 종가)")
+    diff_sign: Sign = Field(alias="sign", title="대비기호")
+    fluc_rate: float = Field(alias="rate", title="등락율", description="해당 전일 대비 / 해당일 종가 * 100")
+    bid_price: float = Field(
+        alias="pbid",
+        title="매수호가",
+        description="마지막 체결이 발생한 시점의 매수호가. 해당 일자 거래량 0인 경우 값이 수신되지 않음"
+    )
+    bid_volume: int = Field(alias="vbid", title="매수호가잔량", description="해당 일자 거래량 0인 경우 값이 수신되지 않음")
+    ask_price: float = Field(
+        alias="pask",
+        title="매도호가",
+        description="마지막 체결이 발생한 시점의 매도호가. 해당 일자 거래량 0인 경우 값이 수신되지 않음"
+    )
+    ask_volume: int = Field(alias="vask", title="매도호가잔량", description="해당 일자 거래량 0인 경우 값이 수신되지 않음")
 
-    # etc
-    prtt_rate: float = Field(alias="prtt_rate", title="분할 비율", example=0.00)
-    mod_yn: str = Field(alias="mod_yn", title="분할변경여부", example="N")
-    flng_cls_code: str = Field(alias="flng_cls_code", title="락 구분 코드", example="00")
+    @validator("diff_sign", pre=True)
+    def set_diff_sign(cls, diff_sign: str):
+        return Sign.from_value(diff_sign)
 
-    KEY = "stck_bsop_date"
 
-    @validator("business_date", pre=True, always=True)
-    def set_business_date(cls, business_date: str) -> date:
-        return datetime.strptime(business_date, "%Y%m%d").date()
 
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"

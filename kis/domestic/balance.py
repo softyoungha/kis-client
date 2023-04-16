@@ -1,8 +1,11 @@
 from kis.base.client import Balance
 from kis.base import fetch
 from kis.exceptions import KISBadArguments
-from typing import List
-from .schema import Portfolio, Deposit
+from typing import List, Tuple, Dict, Any, TYPE_CHECKING
+from .schema import StockInfo, Deposit
+
+if TYPE_CHECKING:
+    from kis.domestic.client import DomesticClient
 
 
 class DomesticBalance(Balance):
@@ -10,13 +13,14 @@ class DomesticBalance(Balance):
     국내 잔고 조회
     https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_66c61080-674f-4c91-a0cc-db5e64e9a5e6
     """
+    client: "DomesticClient"
 
     @fetch(
         "/uapi/domestic-stock/v1/trading/inquire-balance",
-        summary_class=List[Portfolio],
-        detail_class=List[Deposit]
+        summary_class=List[Dict[str, Any]],
+        detail_class=List[Dict[str, Any]]
     )
-    def fetch(
+    def _fetch_one(
             self,
             fk100: str = "",
             nk100: str = "",
@@ -41,14 +45,16 @@ class DomesticBalance(Balance):
         }
         return headers, params
 
-    def fetch_all(self):
+    def fetch(self) -> Tuple[List[StockInfo], List[Deposit]]:
+        result = self._fetch_one()
 
-        result = self.fetch()
-
-        stocks, deposits = [result.summary, ], [result.detail, ]
+        portfolio, deposits = [
+            [StockInfo(**row) for row in result.summary],
+            [Deposit(**row) for row in result.detail]
+        ]
         while result.has_next:
-            result = self.fetch(fk100=result.fk100, nk100=result.nk100)
-            stocks.append(result.summary)
-            deposits.append(result.detail)
+            result = self._fetch_one(fk100=result.fk100, nk100=result.nk100)
+            portfolio.append([StockInfo(**row) for row in result.summary])
+            deposits.append([Deposit(**row) for row in result.detail])
 
-        return stocks, deposits
+        return portfolio, deposits

@@ -1,7 +1,8 @@
 from .client import OverseasClient
 
 NAMED_SYMBOLS = {
-    "삼성전자": "005930"
+    "애플": "AAPL",
+    "마소": "MSFT",
 }
 
 __all__ = [

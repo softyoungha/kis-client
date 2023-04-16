@@ -4,11 +4,29 @@ from typing import Union, overload, Optional
 import yaml
 
 
-def load_yaml(file_path: str) -> Union[list, dict]:
-    """ load yaml file """
-    with open(file_path, "r", encoding="utf-8") as file:
+def read_text(file_path: str, encoding: str = "utf-8") -> str:
+    with open(file_path, "r", encoding=encoding) as file:
+        return file.read()
+
+
+def write_text(text: str, file_path: str, encoding: str = "utf-8"):
+    with open(file_path, "w", encoding=encoding) as file:
+        file.write(text)
+
+
+def load_yaml(file_path: str, encoding: str = "utf-8") -> Union[list, dict]:
+    """load yaml file """
+    with open(file_path, "r", encoding=encoding) as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
     return data
+
+
+def save_yaml(
+        data: Union[list, dict], file_path: str, encoding: str = "utf-8"
+):
+    """save yaml file"""
+    with open(file_path, "w", encoding=encoding) as file:
+        file.write(yaml.dump(data))
 
 
 @overload

@@ -1,107 +1,81 @@
-from datetime import timedelta, datetime, date
-from typing import Optional, List, Tuple, Union
+from datetime import timedelta, date
+from typing import Optional, List, Tuple, Union, Dict, TYPE_CHECKING
 
-from dateutil.parser import parse
 from datetime import datetime
 
+from kis.enum import Exchange
 from kis.base import fetch
 from kis.base.client import Quote
 from kis.exceptions import KISBadArguments
 from kis.utils.tool import as_datetime
 from kis.overseas.schema import (
     FetchPrice,
-    FetchPricesByMinutesSummary,
-    FetchPriceByMinutesHistory,
+    FetchPriceDetail,
     FetchOHLCVSummary,
     FetchOHLCVHistory,
 )
 
+if TYPE_CHECKING:
+    from kis.overseas.client import OverseasClient
+
 
 class OverseasQuote(Quote):
+    client: "OverseasClient"
 
     @fetch(
-        "/uapi/Overseas-stock/v1/quotations/inquire-price",
-        data_class=FetchPrice
+        "/uapi/overseas-price/v1/quotations/price",
+        data_class=FetchPrice,
     )
-    def fetch_current_price(self, symbol: str):
-        """주식현재가시세"""
-        headers = {"tr_id": "FHKST01010100", "custtype": "P"}
+    def fetch_current_price(self, symbol: str, exchange: Union[str, Exchange] = None):
+        """
+        https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_3eeac674-072d-4674-a5a7-f0ed01194a81
+        """
+        # get exchange
+        exchange = Exchange.from_value(exchange) if exchange else self.client.exchange
+        if not exchange:
+            raise KISBadArguments("'exchange' is required")
+
+        headers = {"tr_id": "HHDFS00000300", "custtype": "P"}
         params = {
-            "fid_cond_mrkt_div_code": "J",
-            "fid_input_iscd": symbol
+            "AUTH": "",
+            "EXCD": exchange.name,
+            "SYMB": symbol,
         }
         return headers, params
 
     @fetch(
-        "/uapi/Overseas-stock/v1/quotations/inquire-time-itemchartprice",
-        summary_class=FetchPricesByMinutesSummary,
-        detail_class=List[FetchPriceByMinutesHistory]
+        "/uapi/overseas-price/v1/quotations/price-detail",
+        data_class=FetchPriceDetail,
     )
-    def _fetch_prices_by_minutes(self, symbol: str, to: Union[str, datetime, date]):
+    def fetch_current_price_detail(self, symbol: str, exchange: Union[str, Exchange] = None):
         """
-        국내주식시세/주식당일분봉조회
-        최대 30개씩 출력
+        https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_3eeac674-072d-4674-a5a7-f0ed01194a81
         """
-        try:
-            datetime.strptime(to, "%H%M%S")
-        except ValueError as err:
-            raise KISBadArguments() from err
+        if not self.is_dev:
+            raise KISBadArguments("This API is only available in dev mode")
 
-        headers = {"tr_id": "FHKST03010200", "custtype": "P"}
+        # get exchange
+        exchange = Exchange.from_value(exchange) if exchange else self.client.exchange
+        if not exchange:
+            raise KISBadArguments("'exchange' is required")
+
+        headers = {"tr_id": "HHDFS76200200", "custtype": "P"}
         params = {
-            "fid_etc_cls_code": "",
-            "fid_cond_mrkt_div_code": "J",
-            "fid_input_iscd": symbol,
-            "fid_input_hour_1": to,  # HHMMSS
-            "fid_pw_data_incu_yn": "Y"
+            "AUTH": "",
+            "EXCD": exchange.name,
+            "SYMB": symbol,
         }
         return headers, params
 
-    def fetch_prices_by_minutes(
-            self,
-            symbol: str,
-            to: Optional[str] = None,
-            count: Optional[int] = None
-    ) -> Tuple[FetchPricesByMinutesSummary, List[FetchPriceByMinutesHistory]]:
-        now = datetime.now()
-        if not to:
-            if now.weekday() in [5, 6]:
-                # 토/일
-                to = "153000"
-            else:
-                # 월
-                to = now.strftime("%H%M%S")
-                if to > "153000":
-                    to = "153000"
-
-        if count is None:
-            count = 14
-
-        full_histories = []
-
-        while count > 0:
-            result = self._fetch_prices_by_minutes(symbol, to)
-            summary, histories = result.summary, result.detail
-
-            full_histories += histories
-
-            # get last output
-            to = (histories[-1].full_execution_time - timedelta(minutes=1)).strftime("%H%M%S")
-            if to <= "090001":
-                break
-            count -= 1
-
-        return summary, full_histories
-
     @fetch(
-        "/uapi/Overseas-stock/v1/quotations/inquire-daily-itemchartprice",
+        "/uapi/overseas-price/v1/quotations/dailyprice",
         summary_class=FetchOHLCVSummary,
-        detail_class=List[FetchOHLCVHistory]
+        detail_class=List[Dict[str, str]]
     )
     def _fetch_histories(
             self,
             symbol: str,
-            start_date: Optional[Union[str, datetime, date]] = None,
+            exchange: Union[str, Exchange] = None,
             end_date: Optional[Union[str, datetime, date]] = None,
             standard: str = "D",
             adjust: bool = True
@@ -110,65 +84,90 @@ class OverseasQuote(Quote):
         국내주식시세/국내주식기간별시세
         100개씩 리턴
         :param symbol: 종목코드
-        :param start_date: 시작일자(예: '20230416')
-        :param end_date: 종료일자(예: '20230416')
+        :param end_date: 조회 기준일자(예: '20230416')
         :param standard: 기준(일: 'D', 주: 'W', 월: 'M', 년: 'Y')
         :param adjust: 수정주가 여부
         """
-        if start_date:
-            start_date = as_datetime(start_date, fmt="%Y%m%d")
-        else:
-            start_date = "19800104"
+        # get exchange
+        exchange = Exchange.from_value(exchange) if exchange else self.client.exchange
+        if not exchange:
+            raise KISBadArguments("'exchange' is required")
 
         if end_date:
             end_date = as_datetime(end_date, fmt="%Y%m%d")
         else:
-            end_date = datetime.now().strftime("%Y%m%d")
+            end_date = ""
 
-        headers = {"tr_id": "FHKST03010100", "custtype": "P"}
+        if standard == "D":
+            standard_code = "0"
+        elif standard == "W":
+            standard_code = "1"
+        elif standard == "M":
+            standard_code = "2"
+        else:
+            raise KISBadArguments("standard must be one of ('D', 'W', 'M')")
+
+        headers = {"tr_id": "HHDFS76240000", "custtype": "P"}
         params = {
-            "FID_COND_MRKT_DIV_CODE": "J",
-            "FID_INPUT_ISCD": symbol,
-            "FID_INPUT_DATE_1": start_date,
-            "FID_INPUT_DATE_2": end_date,
-            "FID_PERIOD_DIV_CODE": standard,
-            "FID_ORG_ADJ_PRC": "0" if adjust else "1"
+            "AUTH": "",
+            "SYMB": symbol,
+            "EXCD": exchange.name,
+            "GUBN": standard_code,
+            "BYMD": end_date,
+            "MODP": "1" if adjust else "0",
         }
         return headers, params
 
     def fetch_histories(
             self,
             symbol: str,
+            exchange: Union[str, Exchange] = None,
             start_date: Optional[Union[str, datetime, date]] = None,
             end_date: Optional[Union[str, datetime, date]] = None,
             standard: str = "D",
-            count: Optional[int] = None
+            count: Optional[int] = None,
+            adjust: bool = True,
     ) -> Tuple[FetchOHLCVSummary, List[FetchOHLCVHistory]]:
         if count is None:
             count = 10
 
-        full_histories = []
+        def filter_func(row: dict) -> bool:
+            business_date = row.get("xymd", "")
+            if start_date:
+                return start_date.strftime("%Y%m%d") <= business_date
+            return bool(business_date) and bool(row.get("tvol"))
 
-        summary = None
+        summary: Optional[FetchOHLCVSummary] = None
+        full_histories: List[FetchOHLCVHistory] = []
         while count > 0:
             result = self._fetch_histories(
                 symbol,
-                start_date=start_date,
+                exchange,
                 end_date=end_date,
-                standard=standard
+                standard=standard,
+                adjust=adjust
             )
-            summary, histories = result.summary, result.detail
+
+            if summary is None:
+                summary = result.summary
+
+            histories = [
+                FetchOHLCVHistory(**row)
+                for row in result.detail
+                if filter_func(row)
+            ]
+
             if not histories:
                 break
+
             full_histories += histories
 
-            # break
-            need_break = False
-            for history in histories:
-                if not history:
-                    need_break = True
-                    break
-            if need_break:
+            # 100개 이하로 가져오면 break
+            if len(histories) != 100:
+                break
+
+            # start_date에 도달하면 break
+            if histories[-1].business_date == start_date:
                 break
 
             # get last output
@@ -177,3 +176,4 @@ class OverseasQuote(Quote):
             count -= 1
 
         return summary, full_histories
+

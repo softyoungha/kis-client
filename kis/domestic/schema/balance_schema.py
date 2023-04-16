@@ -1,15 +1,15 @@
 from pydantic import BaseModel, Field
 
 
-class Portfolio(BaseModel):
+class StockInfo(BaseModel):
     """
     https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_66c61080-674f-4c91-a0cc-db5e64e9a5e6
     """
     symbol: str = Field(alias="pdno", title="상품번호")
     symbol_korean: str = Field(alias="prdt_name", title="상품명")
     trad_dvsn_name: str = Field(alias="trad_dvsn_name", title="매매구분명")
-    prev_buy_quantity: str = Field(alias="dfdy_buy_qty", title="전일매수수량")
-    prev_sell_quantity: str = Field(alias="bfdy_sll_qty", title="전일매도수량")
+    x_buy_quantity: str = Field(alias="dfdy_buy_qty", title="전일매수수량")
+    x_sell_quantity: str = Field(alias="bfdy_sll_qty", title="전일매도수량")
     today_buy_quantity: str = Field(alias="thdt_buyqty", title="금일매수수량")
     today_sell_quantity: str = Field(alias="thdt_sll_qty", title="금일매도수량")
     current_quantity: str = Field(alias="hldg_qty", title="보유수량")
@@ -29,7 +29,7 @@ class Portfolio(BaseModel):
     expire_date: str = Field(alias="expd_dt", title="만기일자")
 
     # etc 확인 필요
-    floating_rate: str = Field(alias="fltt_rt", title="등락율")
+    fluc_rate: str = Field(alias="fltt_rt", title="등락율")
     bfdy_cprs_icdc: str = Field(alias="bfdy_cprs_icdc", title="전일대비증감")
     item_mgna_rt_name: str = Field(alias="item_mgna_rt_name", title="종목증거금율명")
     grta_rt_name: str = Field(alias="grta_rt_name", title="보증금율명")
@@ -66,10 +66,10 @@ class Deposit(BaseModel):
     asset_growth_rate: float = Field(alias="asst_icdc_erng_rt", title="자산증감수익율")
 
     # 전일
-    prev_buy_amount: float = Field(alias="bfdy_buy_amt", title="전일매수금액")
-    prev_sell_amount: float = Field(alias="bfdy_sll_amt", title="전일매도금액")
-    prev_total_evaluated_amount: float = Field(alias="bfdy_tot_asst_evlu_amt", title="전일총자산평가금액")
-    prev_tax_exchange_amount: float = Field(
+    x_buy_amount: float = Field(alias="bfdy_buy_amt", title="전일매수금액")
+    x_sell_amount: float = Field(alias="bfdy_sll_amt", title="전일매도금액")
+    x_total_evaluated_amount: float = Field(alias="bfdy_tot_asst_evlu_amt", title="전일총자산평가금액")
+    x_tax_exchange_amount: float = Field(
         alias="bfdy_tlex_amt", title="전일제비용금액", description="tax_liability_exchange_amount"
     )
 

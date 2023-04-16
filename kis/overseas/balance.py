@@ -1,8 +1,11 @@
 from kis.base.client import Balance
 from kis.base import fetch
 from kis.exceptions import KISBadArguments
-from typing import List
+from typing import List, TYPE_CHECKING
 from .schema import Portfolio, Deposit
+
+if TYPE_CHECKING:
+    from kis.overseas.client import OverseasClient
 
 
 class OverseasBalance(Balance):
@@ -10,13 +13,14 @@ class OverseasBalance(Balance):
     국내 잔고 조회
     https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_66c61080-674f-4c91-a0cc-db5e64e9a5e6
     """
+    client: "OverseasClient"
 
     @fetch(
         "/uapi/Overseas-stock/v1/trading/inquire-balance",
         summary_class=List[Portfolio],
         detail_class=List[Deposit]
     )
-    def fetch(
+    def _fetch_one(
             self,
             fk100: str = "",
             nk100: str = "",
@@ -40,3 +44,7 @@ class OverseasBalance(Balance):
             "CTX_AREA_NK100": nk100,  # 연속조회키100
         }
         return headers, params
+
+
+    def fetch(self):
+        pass

@@ -1,12 +1,12 @@
 from datetime import timedelta, datetime, date
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Tuple, Union, Dict, Any, TYPE_CHECKING
 
 from dateutil.parser import parse
 from datetime import datetime
 
 from kis.base import fetch
 from kis.base.client import Quote
-from kis.exceptions import KISBadArguments
+from kis.exceptions import KISBadArguments, KISNoData
 from kis.utils.tool import as_datetime
 from kis.domestic.schema import (
     FetchPrice,
@@ -16,8 +16,12 @@ from kis.domestic.schema import (
     FetchOHLCVHistory,
 )
 
+if TYPE_CHECKING:
+    from kis.domestic.client import DomesticClient
+
 
 class DomesticQuote(Quote):
+    client: "DomesticClient"
 
     @fetch(
         "/uapi/domestic-stock/v1/quotations/inquire-price",
@@ -35,7 +39,7 @@ class DomesticQuote(Quote):
     @fetch(
         "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
         summary_class=FetchPricesByMinutesSummary,
-        detail_class=List[FetchPriceByMinutesHistory]
+        detail_class=List[Dict[str, Any]]
     )
     def _fetch_prices_by_minutes(self, symbol: str, to: Union[str, datetime, date]):
         """
@@ -63,8 +67,8 @@ class DomesticQuote(Quote):
             to: Optional[str] = None,
             count: Optional[int] = None
     ) -> Tuple[FetchPricesByMinutesSummary, List[FetchPriceByMinutesHistory]]:
-        now = datetime.now()
         if not to:
+            now = datetime.now()
             if now.weekday() in [5, 6]:
                 # 토/일
                 to = "153000"
@@ -77,13 +81,23 @@ class DomesticQuote(Quote):
         if count is None:
             count = 14
 
-        full_histories = []
+        summary: Optional[FetchPricesByMinutesSummary] = None
+        full_histories: List[FetchPriceByMinutesHistory] = []
 
         while count > 0:
             result = self._fetch_prices_by_minutes(symbol, to)
-            summary, histories = result.summary, result.detail
+            summary = result.summary
+            histories = [
+                FetchPriceByMinutesHistory(**history)
+                for history in result.detail
+                if history.get("stck_bsop_date")
+            ]
 
             full_histories += histories
+
+            # 30개 이하로 가져오면 break
+            if len(histories) != 30:
+                break
 
             # get last output
             to = (histories[-1].full_execution_time - timedelta(minutes=1)).strftime("%H%M%S")
@@ -91,12 +105,15 @@ class DomesticQuote(Quote):
                 break
             count -= 1
 
+        if summary is None:
+            raise KISNoData("No 'FetchOHLCVSummary' data found. ")
+
         return summary, full_histories
 
     @fetch(
         "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
         summary_class=FetchOHLCVSummary,
-        detail_class=List[FetchOHLCVHistory]
+        detail_class=List[Dict[str, str]]
     )
     def _fetch_histories(
             self,
@@ -147,9 +164,8 @@ class DomesticQuote(Quote):
         if count is None:
             count = 10
 
-        full_histories = []
-
-        summary = None
+        summary: Optional[FetchOHLCVSummary] = None
+        full_histories: List[FetchOHLCVHistory] = []
         while count > 0:
             result = self._fetch_histories(
                 symbol,
@@ -157,23 +173,35 @@ class DomesticQuote(Quote):
                 end_date=end_date,
                 standard=standard
             )
-            summary, histories = result.summary, result.detail
+
+            if summary is None:
+                summary = result.summary
+
+            histories = [
+                FetchOHLCVHistory(**row)
+                for row in result.detail
+                if row.get("stck_bsop_date")
+            ]
+
             if not histories:
                 break
+
             full_histories += histories
 
-            # break
-            need_break = False
-            for history in histories:
-                if not history:
-                    need_break = True
-                    break
-            if need_break:
+            # 100개 이하로 가져오면 break
+            if len(histories) != 100:
+                break
+
+            # start_date에 도달하면 break
+            if histories[-1].business_date == start_date:
                 break
 
             # get last output
             last_history = histories[-1]
             end_date = (last_history.business_date - timedelta(days=1)).strftime("%Y%m%d")
             count -= 1
+
+        if summary is None:
+            raise KISNoData("No 'FetchOHLCVSummary' data found. ")
 
         return summary, full_histories

@@ -1,12 +1,16 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from kis.base.client import Order
 from kis.base import fetch, order
 from kis.exceptions import KISBadArguments
 from .schema import OrderData, FetchOrdersData
 
+if TYPE_CHECKING:
+    from kis.domestic.client import DomesticClient
+
 
 class DomesticOrder(Order):
     """국내 주문 조회"""
+    client: "DomesticClient"
 
     @order(
         "/uapi/domestic-stock/v1/trading/order-cash",

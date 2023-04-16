@@ -9,9 +9,9 @@ from .schema import ResponseData, ResponseDataDetail
 from .client import KisClientBase, SubClass
 
 # typing
-DataSchema = TypeVar("DataSchema", bound=BaseModel)
-SummarySchema = TypeVar("SummarySchema", bound=Union[BaseModel, List[BaseModel]])
-DetailSchema = TypeVar("DetailSchema", bound=Union[BaseModel, List[BaseModel]])
+DataSchema = TypeVar("DataSchema")
+SummarySchema = TypeVar("SummarySchema")
+DetailSchema = TypeVar("DetailSchema")
 Func = Callable[..., Tuple[dict, dict]]
 OrderFunc = Callable[..., Tuple[dict, dict, dict]]
 
@@ -96,6 +96,8 @@ def fetch(
                 params=params or None
             )
             data = res.json()
+            if data["rt_cd"] != "0":
+                raise KISBadArguments(f"[{data['tr_id']}] '{data['msg_cd']}': {data['msg1']}")
             data.update(
                 tr_id=res.headers.get("tr_id"),
                 tr_cont=res.headers.get("tr_cont")

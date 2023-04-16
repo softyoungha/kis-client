@@ -1,5 +1,4 @@
 import pytest
-from pprint import pprint
 from kis.domestic import DomesticClient, NAMED_SYMBOLS
 
 
@@ -102,5 +101,5 @@ class TestDomesticQuote:
 class TestDomesticBalance:
 
     def test_fetch_balance(self, client: DomesticClient):
-        result = client.balance.fetch()
-        assert len(result.detail) >= 1
+        portfolio, deposit = client.balance.fetch()
+        assert len(deposit) >= 1

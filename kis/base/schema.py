@@ -1,13 +1,21 @@
 from typing import TypeVar, Type, Union, List, Generic, Optional
-
+from datetime import datetime
 from pydantic import BaseModel, Field, validator, root_validator
 from pydantic.generics import GenericModel
 
 
-class CreateTokenRespData(BaseModel):
+class Token(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
+
+    @property
+    def expired_at(self) -> int:
+        return int(datetime.now().timestamp()) + self.expires_in
+
+    @property
+    def is_expired(self) -> bool:
+        return datetime.now().timestamp() > self.expired_at
 
 
 class DestroyTokenRespData(BaseModel):
@@ -44,7 +52,9 @@ class ResponseData(GenericModel, Generic[Data]):
 
     @validator("has_next", pre=True)
     def convert_has_next(cls, tr_cont: str) -> bool:
-        return tr_cont in ("F", "M")
+        if tr_cont:
+            return tr_cont in ("F", "M")
+        return False
 
 
 Summary = TypeVar("Summary")
@@ -56,7 +66,7 @@ class ResponseDataDetail(GenericModel, Generic[Summary, Detail]):
     msg_cd: str = Field(alias="msg_cd", title="응답코드")
     msg: str = Field(alias="msg1", title="응답메시지")
     summary: Summary = Field(alias="output1", title="응답상세1")
-    detail: Detail = Field(alias="output2", title="응답상세2")
+    detail: Optional[Detail] = Field(alias="output2", title="응답상세2")
     fk100: str = Field("", alias="ctx_area_fk100", title="연속조회검색조건100", repr=False)
     nk100: str = Field("", alias="ctx_area_nk100", title="연속조회키100", repr=False)
     tr_id: str = Field(alias="tr_id", title="트랜잭션 ID")
@@ -72,20 +82,6 @@ class ResponseDataDetail(GenericModel, Generic[Summary, Detail]):
 
     @validator("has_next", pre=True)
     def convert_has_next(cls, tr_cont: str) -> bool:
-        return tr_cont in ("F", "M")
-
-    @root_validator(pre=True)
-    def validate_detail(cls, values: dict) -> dict:
-        """
-        주식 영업일자 column(stck_bsop_date)이 없는 item 은 제거
-        """
-        detail = values.get("items")
-        if values.get("tr_id") in ("FHKST03010100", "FHKST03010200"):
-            values.update(
-                detail=[
-                    item
-                    for item in detail
-                    if item.get("stck_bsop_date")
-                ]
-            )
-        return values
+        if tr_cont:
+            return tr_cont.upper() in ("F", "M")
+        return False

@@ -19,3 +19,8 @@ class DomesticClient(KisClientBase):
     @cached_property
     def balance(self) -> "DomesticBalance":
         return DomesticBalance(client=self)
+
+
+DomesticQuote.update_forward_refs(DomesticClient=DomesticClient)
+DomesticOrder.update_forward_refs(DomesticClient=DomesticClient)
+DomesticBalance.update_forward_refs(DomesticClient=DomesticClient)

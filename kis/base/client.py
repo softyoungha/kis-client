@@ -2,10 +2,12 @@ import os
 from functools import cached_property
 
 from typing import Optional, Tuple
+from dataclasses import dataclass
 from pydantic import BaseModel, SecretStr, Field, PrivateAttr
 from kis.exceptions import KISBadArguments, KISSecretNotFound, KISAccountNotFound
 
 from kis.base.session import KisSession
+from kis.enum import Exchange
 
 
 def get_base_url(is_dev: bool) -> str:
@@ -34,7 +36,7 @@ class KisClientBase(BaseModel):
             options.append(f"account={self.account}")
         else:
             options.append("account='Not Set'")
-        return f"{name or self.__repr_name__()}({' '.join(options)})"
+        return f"{name or self.__class__.__name__}({' '.join(options)})"
 
     @property
     def account_split(self) -> Tuple[str, str]:
@@ -89,7 +91,11 @@ class KisClientBase(BaseModel):
 
 
 class SubClass(BaseModel):
-    client: KisClientBase
+    client: "KisClientBase"
+
+    class Config:
+        arbitrary_types_allowed = True
+        keep_untouched = (cached_property,)
 
     def __repr__(self):
         return self.client.__repr__(self.__repr_name__())
@@ -105,14 +111,6 @@ class Quote(SubClass):
     def fetch_current_price(self, symbol: str):
         """현재가 조회"""
         raise NotImplementedError("fetch_current_price not implemented")
-
-    def _fetch_prices_by_minutes(self, symbol: str, to: str):
-        """분봉 조회 출력 30개"""
-        raise NotImplementedError("fetch_prices_by_minutes not implemented")
-
-    def fetch_prices_by_minutes(self, symbol: str, to: str):
-        """모든일자 분봉 조회"""
-        raise NotImplementedError("fetch_all_prices_by_minutes not implemented")
 
     def _fetch_histories(self, symbol: str, end_date: str, standard: str):
         """기간별 시세 조회 100개"""
@@ -275,6 +273,6 @@ class Order(SubClass):
 class Balance(SubClass):
     """ 잔고 조회 관련 API """
 
-    def fetch(self):
+    def _fetch_one(self):
         """주식 잔고 조회"""
         raise NotImplementedError("fetch not implemented")

@@ -2,6 +2,8 @@ from datetime import datetime, date, time
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 
+from kis.enum import Sign
+
 
 class FetchPrice(BaseModel):
     """
@@ -14,22 +16,22 @@ class FetchPrice(BaseModel):
     price_lowest: float = Field(alias="stck_lwpr", title="최저가", example=63800)
     price_lower_bound: float = Field(alias="stck_llam", title="하한가", example=43700)
     price_open: float = Field(alias="stck_oprc", title="시가", example=63800)
-    price_standard: float = Field(alias="stck_sdpr", title="기준가(전일 종가)", example=62300)
+    price_base: float = Field(alias="stck_sdpr", title="기준가(전일 종가)", example=62300)
 
     # about stock
-    bstp_kor_isnm: str = Field(alias="bstp_kor_isnm", title="업종 한글 종목명", example='전기.전자')
+    sector_korean: str = Field(alias="bstp_kor_isnm", title="업종 한글 종목명", example='전기.전자')
     symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example='005930')
     market_name: str = Field(alias="rprs_mrkt_kor_name", title="대표 시장 한글명", example='KOSPI200')
-    hts_market_cap: int = Field(alias="hts_avls", title="HTS 시가총액", example=3880359)
+    market_cap: int = Field(alias="hts_avls", title="HTS 시가총액", example=3880359)
     bps: float = Field(alias="bps", title="BPS", example=50817.00)
     eps: float = Field(alias="eps", title="EPS", example=8057.00)
     pbr: float = Field(alias="pbr", example='1.28')
     per: float = Field(alias="per", example='8.07')
 
-    prev_vs_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
-    prev_vs_volume_rate: float = Field(alias="prdy_vrss_vol_rate", example=183.26)
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
+    diff_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
+    diff_volume_rate: float = Field(alias="prdy_vrss_vol_rate", example=183.26)
+    diff_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
+    diff_sign: Sign = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
 
     # etc. if you want some column, you can rename it
     iscd_stat_cls_code: str = Field(alias="iscd_stat_cls_code", title="종목 상태 구분 코드", example='55')
@@ -93,17 +95,9 @@ class FetchPrice(BaseModel):
     wghn_avrg_stck_prc: float = Field(alias="wghn_avrg_stck_prc", example=64718.35)
     whol_loan_rmnd_rate: float = Field(alias="whol_loan_rmnd_rate", example=0.07)
 
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
+    @validator("diff_sign", pre=True)
+    def set_diff_sign(cls, diff_sign: str):
+        return Sign.from_value(diff_sign)
 
     def __repr__(self):
         return (
@@ -117,25 +111,17 @@ class FetchPricesByMinutesSummary(BaseModel):
     :reference: https://me2.kr/MZUXv
     """
     symbol_korean: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example='삼성전자')
-    prev_vs_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
+    diff_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
+    diff_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
+    diff_sign: Sign = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
     stck_prdy_clpr: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=62300)
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1778208943700)
-    cumulative_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
+    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1778208943700)
+    accumulated_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
     current: float = Field(alias="stck_prpr", title="현재가", example=65000)
 
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
+    @validator("diff_sign", pre=True)
+    def set_diff_sign(cls, diff_sign: str):
+        return Sign.from_value(diff_sign)
 
     def __repr__(self):
         return (
@@ -150,14 +136,12 @@ class FetchPriceByMinutesHistory(BaseModel):
     """
     business_date: date = Field(alias="stck_bsop_date", title="주식 영업 일자", example="20230407")
     execution_time: time = Field(alias="stck_cntg_hour", title="주식 체결 시간", example="123000")
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
+    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
     volume: int = Field(alias="cntg_vol", title="체결 거래량", example=27099)
     highest: float = Field(alias="stck_hgpr", title="최고가", example=65200)
     current: float = Field(alias="stck_prpr", title="현재가", example=65000)
     lowest: float = Field(alias="stck_lwpr", title="최저가", example=63800)
     open: float = Field(alias="stck_oprc", title="시가", example=63800)
-
-    KEY = "stck_bsop_date"
 
     @validator("business_date", pre=True)
     def set_business_date(cls, business_date: str) -> date:
@@ -182,19 +166,19 @@ class FetchPriceByMinutesHistory(BaseModel):
 
 class FetchOHLCVSummary(BaseModel):
     """
-
+    https://me2.kr/MZUXv
     """
     # 종목 정보
     symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example="005930")
     symbol_korean: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example="삼성전자")
     face_value: int = Field(alias="stck_fcam", title="주식 액면가", example=100)
-    listed_shares: int = Field(alias="lstn_stcn", title="상장 주수", example=5969782550)
+    shares: int = Field(alias="lstn_stcn", title="상장 주수", example=5969782550)
     capital: int = Field(alias="cpfn", title="자본금", example=596978255000)
     market_cap: int = Field(alias="hts_avls", title="시가총액", example=3870000000000)
     per: float = Field(alias="per", title="PER", example=0.00)
     eps: float = Field(alias="eps", title="EPS", example=0)
     pbr: float = Field(alias="pbr", title="PBR", example=0.00)
-    itewhol_loan_rmnd_ratem: Optional[float] = Field(alias="itewhol_loan_rmnd_ratem", title="전체 융자 잔고 비율", example=0.00)
+    whole_loan_remain_rate: Optional[float] = Field(alias="itewhol_loan_rmnd_ratem", title="전체 융자 잔고 비율", example=0.00)
 
     # 가격 정보
     price_upper_bound: int = Field(alias="stck_mxpr", title="상한가", example=0)
@@ -203,36 +187,28 @@ class FetchOHLCVSummary(BaseModel):
     price_lowest: int = Field(alias="stck_lwpr", title="최저가", example=63800)
     price_lower_bound: int = Field(alias="stck_llam", title="하한가", example=0)
     price_open: int = Field(alias="stck_oprc", title="시가", example=63800)
-    price_standard: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=61000)
-    cumulative_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
+    price_base: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=61000)
+    accumulated_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
+    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
     ask_price: int = Field(alias="askp", title="매도호가", example=65000)
     bid_price: int = Field(alias="bidp", title="매수호가", example=64900)
     volume_rotation: float = Field(alias="vol_tnrt", title="거래량 회전율", example=0.00)
 
     # 전일 정보
-    prev_open: int = Field(alias="stck_prdy_oprc", title="주식 전일 시가", example=63800)
-    prev_highest: int = Field(alias="stck_prdy_hgpr", title="주식 전일 최고가", example=64400)
-    prev_lowest: int = Field(alias="stck_prdy_lwpr", title="주식 전일 최저가", example=63000)
-    prev_volume: int = Field(alias="prdy_vol", title="전일 거래량", example=27099)
+    x_open: int = Field(alias="stck_prdy_oprc", title="주식 전일 시가", example=63800)
+    x_highest: int = Field(alias="stck_prdy_hgpr", title="주식 전일 최고가", example=64400)
+    x_lowest: int = Field(alias="stck_prdy_lwpr", title="주식 전일 최저가", example=63000)
+    x_volume: int = Field(alias="prdy_vol", title="전일 거래량", example=27099)
 
     # 전일 대비
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
-    prev_vs_volume: int = Field(alias="prdy_vrss_vol", title="전일 대비 거래량", example=27099)
-    prev_vs_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
+    diff_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
+    diff_volume: int = Field(alias="prdy_vrss_vol", title="전일 대비 거래량", example=27099)
+    diff_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
+    diff_sign: Sign = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
 
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
+    @validator("diff_sign", pre=True)
+    def set_diff_sign(cls, diff_sign: str):
+        return Sign.from_value(diff_sign)
 
 
 class FetchOHLCVHistory(BaseModel):
@@ -240,34 +216,24 @@ class FetchOHLCVHistory(BaseModel):
     reference: https://me2.kr/MZUXv
     """
     business_date: date = Field(alias="stck_bsop_date", title="주식 영업 일자", example="20210601")
-    standard: int = Field(alias="stck_clpr", title="주식 종가", example=65000)
+    close: int = Field(alias="stck_clpr", title="주식 종가", example=65000)
     open: int = Field(alias="stck_oprc", title="주식 시가", example=63800)
-    highest: int = Field(alias="stck_hgpr", title="주식 최고가", example=65000)
-    lowest: int = Field(alias="stck_lwpr", title="주식 최저가", example=63800)
-    cumulative_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
-    cumulative_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
-    prev_vs_sign: str = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="1")
-    prev_vs_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1200)
+    high: int = Field(alias="stck_hgpr", title="주식 최고가", example=65000)
+    low: int = Field(alias="stck_lwpr", title="주식 최저가", example=63800)
+    accumulated_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
+    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
+    diff_sign: Sign = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="1")
+    diff_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1200)
 
     # etc
     prtt_rate: float = Field(alias="prtt_rate", title="분할 비율", example=0.00)
     mod_yn: str = Field(alias="mod_yn", title="분할변경여부", example="N")
     flng_cls_code: str = Field(alias="flng_cls_code", title="락 구분 코드", example="00")
 
-    KEY = "stck_bsop_date"
-
     @validator("business_date", pre=True, always=True)
     def set_business_date(cls, business_date: str) -> date:
         return datetime.strptime(business_date, "%Y%m%d").date()
 
-    @validator("prev_vs_sign", pre=True)
-    def set_prev_vs_sign(cls, prev_vs_sign: str):
-        if prev_vs_sign == "1":
-            return "상한"
-        elif prev_vs_sign == "2":
-            return "상승"
-        elif prev_vs_sign == "3":
-            return "보합"
-        elif prev_vs_sign == "4":
-            return "하한"
-        return "하락"
+    @validator("diff_sign", pre=True)
+    def set_diff_sign(cls, diff_sign: str):
+        return Sign.from_value(diff_sign)
