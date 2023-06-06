@@ -15,8 +15,3 @@ def fixture_app_secret():
 @pytest.fixture(name="account", scope="session")
 def fixture_account():
     return os.getenv("KIS_ACCOUNT")
-
-
-@pytest.fixture(name="overseas_client", scope="session")
-def fixture_overseas_client():
-    return None

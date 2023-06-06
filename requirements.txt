@@ -5,3 +5,8 @@ pre-commit==3.2.2
 python-dateutil==2.8.2
 pytest==7.3.0
 pandas==1.5.3
+pyqt5==5.15.2
+jupyterlab==3.6.3
+bokeh==2.4.3
+streamlit==1.21.0
+backtrader==

@@ -1,0 +1,6 @@
+[server]
+port = 5000
+
+[runner]
+magicEnabled = false
+runOnSave = true
