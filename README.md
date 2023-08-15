@@ -163,7 +163,7 @@ client = DomesticClient(is_dev=True)
 국내 주식 시세 조회/주문/잔고 조회를 위해서는 `DomesticClient`를 사용합니다. 
 
 ```python
-from kis.core import DomesticClient
+from kis import DomesticClient
 
 client = DomesticClient(profile_name="default")
 
@@ -189,7 +189,7 @@ my_balance = client.balance.fetch()
 해외 주식 시세 조회/주문/잔고 조회를 위해서는 `OverseasClient`를 사용합니다. 
 
 ```python
-from kis.core import OverseasClient
+from kis import OverseasClient
 
 client = OverseasClient(profile_name="default")
 
