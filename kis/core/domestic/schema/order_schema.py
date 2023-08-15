@@ -1,18 +1,19 @@
+from datetime import date, datetime, time
 from typing import Optional
-from datetime import datetime, time, date
+
 from pydantic import BaseModel, Field, validator
 
 
 class OrderData(BaseModel):
     """
-    국내주식주문/주식주문(현금) - Response Body output 응답상세 (Custom Columns)
+    국내주식주문/주식주문(현금) - Response Body output 응답상세 (Pretty Columns)
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_aade4c72-5fb7-418a-9ff2-254b4d5f0ceb
     """
 
-    org_no: str = Field(alias="KRX_FWDG_ORD_ORGNO", title="한국거래소주문조직번호", example='')
-    order_no: str = Field(alias="ODNO", title="주문번호", example='')
-    order_time: time = Field(alias="ORD_TMD", title="주문시각", example='')
+    org_no: str = Field(alias="KRX_FWDG_ORD_ORGNO", title="한국거래소주문조직번호", example="")
+    order_no: str = Field(alias="ODNO", title="주문번호", example="")
+    order_time: time = Field(alias="ORD_TMD", title="주문시각", example="")
 
     def __repr__(self):
         return (
@@ -33,6 +34,7 @@ class BidAvailability(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_806e407c-3082-44c0-9d71-e8534db5ad54
     """
+
     ord_psbl_cash: float = Field(title="주문가능현금")
     ord_psbl_sbst: float = Field(title="주문가능대용")
     ruse_psbl_amt: float = Field(title="재사용가능금액")
@@ -47,12 +49,13 @@ class BidAvailability(BaseModel):
     ord_psbl_frcr_amt_wcrc: float = Field(title="주문가능외화금액원화")
 
     @property
-    def custom(self) -> "CustomBidAvailability":
-        return CustomBidAvailability(**self.dict())
+    def pretty(self) -> "PrettyBidAvailability":
+        return PrettyBidAvailability(**self.dict())
 
 
-class CustomBidAvailability(BaseModel):
-    """ 국내주식주문/매수가능조회 - Response Body output 응답상세 Custom"""
+class PrettyBidAvailability(BaseModel):
+    """국내주식주문/매수가능조회 - Response Body output 응답상세 Pretty"""
+
     available_cash: float = Field(alias="ord_psbl_cash", title="주문가능현금")
     available_substitute: float = Field(alias="ord_psbl_sbst", title="주문가능대용")
     available_reuse: float = Field(alias="ruse_psbl_amt", title="재사용가능금액")
@@ -62,8 +65,12 @@ class CustomBidAvailability(BaseModel):
     max_buy_amount: float = Field(alias="max_buy_amt", title="최대매수금액")
     max_buy_quantity: int = Field(alias="max_buy_qty", title="최대매수수량")
     cma_eval_amount: float = Field(alias="cma_evlu_amt", title="CMA평가금액")
-    overseas_reuse_amount: float = Field(alias="ovrs_re_use_amt_wcrc", title="해외재사용금액원화")
-    available_foreign_currency_amount: float = Field(alias="ord_psbl_frcr_amt_wcrc", title="주문가능외화금액원화")
+    overseas_reuse_amount: float = Field(
+        alias="ovrs_re_use_amt_wcrc", title="해외재사용금액원화"
+    )
+    available_foreign_currency_amount: float = Field(
+        alias="ord_psbl_frcr_amt_wcrc", title="주문가능외화금액원화"
+    )
     fund_repayment: float = Field(alias="fund_rpch_chgs", title="펀드환매대금")
 
 
@@ -73,6 +80,7 @@ class UnExecutedOrder(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_d4537e9c-73f7-414c-9fb0-4eae3bc397d0
     """
+
     ord_gno_brno: str = Field(title="주문채번지점번호")
     odno: str = Field(title="주문번호")
     orgn_odno: str = Field(title="원주문번호")
@@ -91,17 +99,20 @@ class UnExecutedOrder(BaseModel):
     mgco_aptm_odno: str = Field(title="운용사지정주문번호")
 
     @property
-    def custom(self) -> "CustomUnExecutedOrder":
-        return CustomUnExecutedOrder(**self.dict())
+    def pretty(self) -> "PrettyUnExecutedOrder":
+        return PrettyUnExecutedOrder(**self.dict())
 
 
-class CustomUnExecutedOrder(BaseModel):
-    """ 국내주식주문/주식정정취소가능주문조회 - Response Body output 응답상세 Custom """
+class PrettyUnExecutedOrder(BaseModel):
+    """국내주식주문/주식정정취소가능주문조회 - Response Body output 응답상세 Pretty"""
+
     symbol: str = Field(alias="pdno", title="상품번호")
     symbol_name: str = Field(alias="prdt_name", title="상품명")
     org_no: str = Field(alias="ord_gno_brno", title="주문채번지점번호")
     order_no: str = Field(alias="odno", title="주문번호")
-    origin_order_no: Optional[str] = Field(alias="orgn_odno", title="원주문번호", description="정정/취소 주문인 경우")
+    origin_order_no: Optional[str] = Field(
+        alias="orgn_odno", title="원주문번호", description="정정/취소 주문인 경우"
+    )
     order_type: str = Field(alias="sll_buy_dvsn_cd", title="매도매수구분코드")
     modify_type: str = Field(alias="rvse_cncl_dvsn_name", title="정정취소구분명")
 
@@ -148,6 +159,7 @@ class ExecutedOrderSummary(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_bc51f9f7-146f-4971-a5ae-ebd574acec12
     """
+
     ord_dt: str = Field(title="주문일자")
     ord_gno_brno: str = Field(title="주문채번지점번호")
     odno: str = Field(title="주문번호")
@@ -176,12 +188,13 @@ class ExecutedOrderSummary(BaseModel):
     excg_dvsn_cd: str = Field(title="거래소구분코드")
 
     @property
-    def custom(self) -> "CustomExecutedOrderSummary":
-        return CustomExecutedOrderSummary(**self.dict())
+    def pretty(self) -> "PrettyExecutedOrderSummary":
+        return PrettyExecutedOrderSummary(**self.dict())
 
 
-class CustomExecutedOrderSummary(BaseModel):
-    """ 국내주식주문/주식일별주문체결조회 - Response Body output1 응답상세1 Custom """
+class PrettyExecutedOrderSummary(BaseModel):
+    """국내주식주문/주식일별주문체결조회 - Response Body output1 응답상세1 Pretty"""
+
     symbol: str = Field(alias="pdno", title="상품번호")
     symbol_name: str = Field(alias="prdt_name", title="상품명")
     org_no: str = Field(alias="ord_gno_brno", title="주문채번지점번호")
@@ -233,7 +246,8 @@ class CustomExecutedOrderSummary(BaseModel):
 
 
 class ExecutedOrderDetail(BaseModel):
-    """ 국내주식주문/주식일별주문체결조회 - Response Body output2 응답상세2 Custom """
+    """국내주식주문/주식일별주문체결조회 - Response Body output2 응답상세2 Pretty"""
+
     total_order_quantity: int = Field(alias="tot_ord_qty", title="총주문수량")
     total_executed_quantity: int = Field(alias="tot_ccld_qty", title="총체결수량")
     average_price: float = Field(alias="pchs_avg_pric", title="매입평균가격")

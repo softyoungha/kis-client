@@ -1,14 +1,16 @@
-import pandas as pd
-from urllib import request
 import os
-from abc import ABCMeta
-from typing import Optional
-import zipfile
 import tempfile
-from kis.core.enum import Exchange
-from typing import Union
+import zipfile
+from abc import ABCMeta
+from typing import Literal, Optional, Union, overload
+from urllib import request
 
-MASTER_DIR = os.path.join(os.getcwd(), ".cache", "master")
+import pandas as pd
+
+from kis.constants import CONFIG_DIR
+from kis.core.enum import Exchange
+
+MASTER_DIR = os.path.join(CONFIG_DIR, "master")
 
 
 class MasterBook(metaclass=ABCMeta):
@@ -45,8 +47,8 @@ class MasterBook(metaclass=ABCMeta):
     def url(self):
         """Get master file url."""
         return (
-                "https://new.real.download.dws.co.kr/common/master/"
-                + self.exchange.master_file_name
+            "https://new.real.download.dws.co.kr/common/master/"
+            + self.exchange.master_file_name
         )
 
     def download_file(self, dirname: Optional[str] = None):
@@ -66,15 +68,39 @@ class MasterBook(metaclass=ABCMeta):
             zip.close()
 
         else:
-            with tempfile.TemporaryDirectory(prefix="kis-", suffix=self.name) as dirname:
+            with tempfile.TemporaryDirectory(
+                prefix="kis-", suffix=self.name
+            ) as dirname:
                 self.download_file(dirname)
 
     def get_dataframe(self):
         """Get master dataframe."""
         raise NotImplemented("create_dataframe method must be implemented.")
 
+    @overload
     @classmethod
-    def get(cls, name: str, with_detail: bool = False):
+    def get(cls, name: str, with_detail: bool = False) -> pd.DataFrame:
+        """str을 사용하는 경우(lower/upper case 허용)"""
+        ...
+
+    @overload
+    @classmethod
+    def get(
+        cls,
+        name: Literal["KOSPI", "KOSDAQ", "KRX", "NAS", "NYS", "AMS", "USA"],
+        with_detail: bool = False,
+    ) -> pd.DataFrame:
+        """str을 사용하는 경우"""
+        ...
+
+    @overload
+    @classmethod
+    def get(cls, name: Exchange, with_detail: bool = False) -> pd.DataFrame:
+        """Exchange enum을 사용하는 경우"""
+        ...
+
+    @classmethod
+    def get(cls, name: str, with_detail: bool = False) -> pd.DataFrame:
         """
         Get master book instance by exchange name.
         :param name: exchange name
@@ -84,41 +110,58 @@ class MasterBook(metaclass=ABCMeta):
         :param with_detail: if False, return only symbol column
         """
         if name == "KRX":
-            return pd.concat([
-                cls.get(Exchange.KOSPI, with_detail=with_detail),
-                cls.get(Exchange.KOSDAQ, with_detail=with_detail)
-            ], axis=0)
+            return pd.concat(
+                [
+                    cls.get(Exchange.KOSPI, with_detail=with_detail),
+                    cls.get(Exchange.KOSDAQ, with_detail=with_detail),
+                ],
+                axis=0,
+            )
 
         if name == "USA":
-            return pd.concat([
-                cls.get(Exchange.NAS, with_detail=with_detail),
-                cls.get(Exchange.NYS, with_detail=with_detail),
-                cls.get(Exchange.AMS, with_detail=with_detail)
-            ], axis=0)
+            return pd.concat(
+                [
+                    cls.get(Exchange.NAS, with_detail=with_detail),
+                    cls.get(Exchange.NYS, with_detail=with_detail),
+                    cls.get(Exchange.AMS, with_detail=with_detail),
+                ],
+                axis=0,
+            )
 
         if (name := name.upper()) in list(Exchange):
             if name == Exchange.KOSPI:
                 from .kospi import KospiMaster
+
                 master = KospiMaster()
                 symbol_columns = ["단축코드", "한글명", "그룹코드"]
                 renamed_symbol_columns = ["symbol", "symbol_name", "group"]
             elif name == Exchange.KOSDAQ:
                 from .kosdaq import KosdaqMaster
+
                 master = KosdaqMaster()
                 symbol_columns = ["단축코드", "한글명", "증권그룹구분코드"]
                 renamed_symbol_columns = ["symbol", "symbol_name", "group"]
             else:
                 from .overseas import OverseasMaster
+
                 master = OverseasMaster(name)
-                symbol_columns = ["national_code", "exchange_code", "symbol", "korean_name"]
-                renamed_symbol_columns = ["nation_code", "exchange", "symbol", "symbol_name"]
+                symbol_columns = [
+                    "national_code",
+                    "exchange_code",
+                    "symbol",
+                    "korean_name",
+                ]
+                renamed_symbol_columns = [
+                    "nation_code",
+                    "exchange",
+                    "symbol",
+                    "symbol_name",
+                ]
 
             df = master.get_dataframe()
             if with_detail:
                 return df
-            return (
-                df
-                .loc[:, symbol_columns]
-                .rename(columns=dict(zip(symbol_columns, renamed_symbol_columns)))
+            return df.loc[:, symbol_columns].rename(
+                columns=dict(zip(symbol_columns, renamed_symbol_columns))
             )
         raise ValueError("Invalid exchange name.")

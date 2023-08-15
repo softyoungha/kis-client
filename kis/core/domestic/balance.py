@@ -1,7 +1,9 @@
+from typing import Any, Dict, List, Literal, Tuple, overload
+
 from kis.core.base.resources import Balance
-from typing import List, Tuple, Dict, Any, overload, Literal
-from .schema import CustomStock, Stock, CustomDeposit, Deposit
+
 from .client import DomesticResource
+from .schema import Deposit, PrettyDeposit, PrettyStock, Stock
 
 
 class DomesticBalance(DomesticResource, Balance):
@@ -11,9 +13,9 @@ class DomesticBalance(DomesticResource, Balance):
     """
 
     def _fetch_one(
-            self,
-            fk100: str = "",
-            nk100: str = "",
+        self,
+        fk100: str = "",
+        nk100: str = "",
     ):
         """
         국내주식주문/주식잔고조회 1회 호출
@@ -54,7 +56,7 @@ class DomesticBalance(DomesticResource, Balance):
             headers,
             params,
             summary_class=List[Dict[str, Any]],
-            detail_class=List[Dict[str, Any]]
+            detail_class=List[Dict[str, Any]],
         )
 
     def fetch(self) -> Tuple[List[Stock], List[Deposit]]:
@@ -66,7 +68,7 @@ class DomesticBalance(DomesticResource, Balance):
 
         portfolio, deposits = (
             [Stock(**row) for row in result.summary],
-            [Deposit(**row) for row in result.detail]
+            [Deposit(**row) for row in result.detail],
         )
         while result.has_next:
             result = self._fetch_one(fk100=result.fk100, nk100=result.nk100)

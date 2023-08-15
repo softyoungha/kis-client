@@ -1,4 +1,5 @@
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -8,12 +9,13 @@ class Stock(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_66c61080-674f-4c91-a0cc-db5e64e9a5e6
     """
+
     pdno: str = Field(title="상품번호")
     prdt_name: str = Field(title="상품명")
     trad_dvsn_name: str = Field(title="매매구분명")
     bfdy_buy_qty: int = Field(title="전일매수수량")
     bfdy_sll_qty: int = Field(title="전일매도수량")
-    thdt_buy_qty: int = Field(title="금일매수수량")
+    thdt_buy_qty: Optional[int] = Field(title="금일매수수량")
     thdt_sll_qty: int = Field(title="금일매도수량")
     hldg_qty: int = Field(title="보유수량")
     ord_psbl_qty: int = Field(title="주문가능수량")
@@ -33,15 +35,16 @@ class Stock(BaseModel):
     item_mgna_rt_name: str = Field(title="종목증거금율명")
     grta_rt_name: str = Field(title="보증금율명")
     sbst_pric: int = Field(title="대용가격")
-    stck_loan_unpr: int = Field(title="주식대출단가")
+    stck_loan_unpr: float = Field(title="주식대출단가")
 
     @property
-    def custom(self) -> "CustomStock":
-        return CustomStock(**self.dict())
+    def pretty(self) -> "PrettyStock":
+        return PrettyStock(**self.dict())
 
 
-class CustomStock(BaseModel):
-    """ 국내주식주문/주식잔고조회 - Response Body output1 응답상세1 Custom """
+class PrettyStock(BaseModel):
+    """국내주식주문/주식잔고조회 - Response Body output1 응답상세1 Pretty"""
+
     symbol: str = Field(alias="pdno", title="상품번호")
     symbol_name: str = Field(alias="prdt_name", title="상품명")
     order_division: str = Field(alias="trad_dvsn_name", title="매매구분명")
@@ -56,8 +59,9 @@ class CustomStock(BaseModel):
     purchase_amount: str = Field(alias="pchs_amt", title="매입금액")
     eval_amount: str = Field(alias="evlu_amt", title="평가금액")
     eval_profit_loss_amount: str = Field(
-        alias="evlu_pfls_amt", title="평가손익금액",
-        description="evaluated profits and loss amount. 평가금액 - 매입금액"
+        alias="evlu_pfls_amt",
+        title="평가손익금액",
+        description="evaluated profits and loss amount. 평가금액 - 매입금액",
     )
     eval_profit_loss_rate: str = Field(alias="evlu_pfls_rt", title="평가손익율")
     eval_earning_rate: str = Field(alias="evlu_erng_rt", title="평가수익율")
@@ -72,6 +76,7 @@ class Deposit(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock#L_66c61080-674f-4c91-a0cc-db5e64e9a5e6
     """
+
     dnca_tot_amt: int = Field(title="예수금총금액")
     nxdy_excc_amt: int = Field(title="익일정산금액")
     prvs_rcdl_excc_amt: int = Field(title="가수도정산금액")
@@ -98,28 +103,34 @@ class Deposit(BaseModel):
     asst_icdc_erng_rt: float = Field(title="자산증감수익율")
 
     @property
-    def custom(self) -> "CustomDeposit":
-        return CustomDeposit(**self.dict())
+    def pretty(self) -> "PrettyDeposit":
+        return PrettyDeposit(**self.dict())
 
 
-class CustomDeposit(BaseModel):
-    """ 국내주식주문/주식잔고조회 - Response Body output2 응답상세2 Custom """
+class PrettyDeposit(BaseModel):
+    """국내주식주문/주식잔고조회 - Response Body output2 응답상세2 Pretty"""
+
     deposit_total_amount: float = Field(alias="dnca_tot_amt", title="예수금총금액")
     cma_amount: float = Field(alias="cma_evlu_amt", title="CMA평가금액")
     buy_amount: float = Field(alias="thdt_buy_amt", title="금일매수금액")
     sell_amount: float = Field(alias="thdt_sll_amt", title="금일매도금액")
     market_evaluated_amount: float = Field(alias="scts_evlu_amt", title="유가평가금액")
-    total_evaluated_amount: float = Field(alias="tot_evlu_amt", title="총평가금액", description="주식 평가금액 + 예수금 총액")
+    total_evaluated_amount: float = Field(
+        alias="tot_evlu_amt", title="총평가금액", description="주식 평가금액 + 예수금 총액"
+    )
     total_loan_amount: float = Field(alias="tot_loan_amt", title="총대출금액")
     tax_exchange_amount: float = Field(
-        alias="thdt_tlex_amt", title="금일제비용금액", description="tax_liability_exchange_amount"
+        alias="thdt_tlex_amt",
+        title="금일제비용금액",
+        description="tax_liability_exchange_amount",
     )
     net_asset_amount: float = Field(alias="nass_amt", title="순자산금액")
     sum_purchase_amount: float = Field(alias="pchs_amt_smtl_amt", title="매입금액합계금액")
     sum_evaluated_amount: float = Field(alias="evlu_amt_smtl_amt", title="평가금액합계금액")
     profit_loss_amount: float = Field(
-        alias="evlu_pfls_smtl_amt", title="평가손익합계금액",
-        description="sum total amount of profit and loss amount of evaluation"
+        alias="evlu_pfls_smtl_amt",
+        title="평가손익합계금액",
+        description="sum total amount of profit and loss amount of evaluation",
     )
     net_asset_change: int = Field(alias="asst_icdc_amt", title="자산증감액")
     asset_growth_rate: float = Field(alias="asst_icdc_erng_rt", title="자산증감수익율")
@@ -127,14 +138,22 @@ class CustomDeposit(BaseModel):
     # 전일
     x_buy_amount: float = Field(alias="bfdy_buy_amt", title="전일매수금액")
     x_sell_amount: float = Field(alias="bfdy_sll_amt", title="전일매도금액")
-    x_total_evaluated_amount: float = Field(alias="bfdy_tot_asst_evlu_amt", title="전일총자산평가금액")
+    x_total_evaluated_amount: float = Field(
+        alias="bfdy_tot_asst_evlu_amt", title="전일총자산평가금액"
+    )
     x_tax_exchange_amount: float = Field(
-        alias="bfdy_tlex_amt", title="전일제비용금액", description="tax_liability_exchange_amount"
+        alias="bfdy_tlex_amt",
+        title="전일제비용금액",
+        description="tax_liability_exchange_amount",
     )
 
     # 익일
-    next_auto_repayment_amount: float = Field(alias="nxdy_auto_rdpt_amt", title="익일자동상환금액")
-    next_exchange_amount: float = Field(alias="nxdy_excc_amt", title="익일정산금액", description="")
+    next_auto_repayment_amount: float = Field(
+        alias="nxdy_auto_rdpt_amt", title="익일자동상환금액"
+    )
+    next_exchange_amount: float = Field(
+        alias="nxdy_excc_amt", title="익일정산금액", description=""
+    )
 
     # D+2
     d2_auto_repayment_amount: float = Field(alias="d2_auto_rdpt_amt", title="D+2자동상환금액")

@@ -1,58 +1,72 @@
+from textwrap import dedent
 from typing import Any, Dict
 
 
 class KISModuleError(Exception):
-    msg = "Korea-invest module 에러"
+    """Korea-invest module 에러"""
 
-    def __init__(self, msg: str = ""):
-        self.msg = msg or self.msg
-        super().__init__(msg or self.msg)
+    msg = ""
+
+    def __init__(self, msg: str = None):
+        self.msg = msg or self.msg or self.doc
+        super().__init__(self.msg)
+
+    @property
+    def doc(self) -> str:
+        """doc -> strip -> remove first/end '\n'"""
+        doc = self.__doc__.strip()
+        if doc.startswith("\n"):
+            _, *docs = doc.split("\n")
+            if not docs[-1]:
+                docs.pop()
+            doc = "\n".join(docs)
+        return dedent(doc)
 
 
 class KISServerHTTPError(KISModuleError):
-    msg = "한국투자증권 서버로부터 에러 응답을 받았습니다."
+    """한국투자증권 서버로부터 에러 응답을 받았습니다. url='{url}'"""
 
     def __init__(self, url: str):
-        super().__init__(f"{self.msg}: url={url}")
+        super().__init__(self.doc.format(url=url))
 
 
 class KISServerInternalError(KISModuleError):
-    msg = "한국투자증권 서버로부터 응답을 받을 수 없습니다"
+    "한국투자증권 서버로부터 응답을 받을 수 없습니다. url='{url}'"
 
     def __init__(self, url: str):
-        super().__init__(f"{self.msg}: url={url}")
+        super().__init__(self.doc.format(url=url))
 
 
 class KISAccountNotFound(KISModuleError):
-    msg = "account를 찾을 수 없습니다."
+    """account를 찾을 수 없습니다."""
 
 
 class KISSecretNotFound(KISModuleError):
-    msg = "secret을 찾을 수 없습니다."
+    """secret을 찾을 수 없습니다."""
 
 
 class KISWrongAccount(KISModuleError):
-    msg = "계좌정보가 잘못되었습니다."
+    """계좌정보가 잘못되었습니다."""
 
 
 class KISBadArguments(KISModuleError):
-    msg = "argument 입력이 잘못되었습니다."
+    """argument 입력이 잘못되었습니다."""
 
 
 class KISDevModeError(KISModuleError):
-    msg = "모의투자 모드에서는 사용할 수 없는 기능입니다."
+    """모의투자 모드에서는 사용할 수 없는 기능입니다."""
 
 
 class KISRecursionError(KISModuleError):
-    msg = "재귀 호출이 발생했습니다."
+    """재귀 호출이 발생했습니다."""
 
 
 class KISSessionNotFound(KISModuleError):
-    msg = "session을 찾을 수 없습니다."
+    """session을 찾을 수 없습니다."""
 
 
 class KISNoData(KISModuleError):
-    msg = "데이터가 없습니다."
+    """데이터가 없습니다."""
 
 
 def handle_error(data: Dict[str, Any]):
@@ -72,5 +86,9 @@ def handle_error(data: Dict[str, Any]):
         if msg_code == "40650000":
             # 모의투자 주문시 지정가 외에 선택할 경우
             raise KISDevModeError(err_msg)
+
+        if msg_code == "40910000":
+            # 모의투자 주문이 불가한 계좌입니다.
+            raise KISWrongAccount(err_msg)
 
         raise KISBadArguments(err_msg)

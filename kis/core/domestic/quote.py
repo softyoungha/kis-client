@@ -1,30 +1,29 @@
 import logging
-from datetime import datetime
-from datetime import timedelta, date
-from typing import Optional, List, Tuple, Union, Dict, Any, overload, Literal
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 
 from kis.core.base.resources import Quote
 from kis.core.domestic.schema import (
-    Price,
-    PriceCustom,
-    PricesSummaryByMinutes,
-    PriceHistoryByMinutes,
-    FetchOHLCVSummary,
     FetchOHLCVHistory,
+    FetchOHLCVSummary,
+    PrettyPrice,
+    Price,
+    PriceHistoryByMinutes,
+    PricesSummaryByMinutes,
 )
 from kis.exceptions import KISBadArguments, KISNoData
 from kis.utils.tool import as_datetime
+
 from .client import DomesticResource
 
 logger = logging.getLogger(__name__)
 
 
 class DomesticQuote(DomesticResource, Quote):
-
     def fetch_current_price(
-            self,
-            symbol: str,
-    )  -> Price:
+        self,
+        symbol: str,
+    ) -> Price:
         """
         국내주식시세/주식현재가 시세 조회
 
@@ -35,10 +34,7 @@ class DomesticQuote(DomesticResource, Quote):
         See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-quotations#L_07802512-4f49-4486-91b4-1050b6f5dc9d
         """
         headers = {"tr_id": "FHKST01010100", "custtype": "P"}
-        params = {
-            "fid_cond_mrkt_div_code": "J",
-            "fid_input_iscd": symbol
-        }
+        params = {"fid_cond_mrkt_div_code": "J", "fid_input_iscd": symbol}
 
         res = self.client.fetch_data(
             "/uapi/domestic-stock/v1/quotations/inquire-price",
@@ -74,7 +70,7 @@ class DomesticQuote(DomesticResource, Quote):
             "fid_cond_mrkt_div_code": "J",
             "fid_input_iscd": symbol,
             "fid_input_hour_1": to,  # HHMMSS
-            "fid_pw_data_incu_yn": "Y"
+            "fid_pw_data_incu_yn": "Y",
         }
 
         return self.client.fetch_data(
@@ -82,14 +78,11 @@ class DomesticQuote(DomesticResource, Quote):
             headers=headers,
             params=params,
             summary_class=PricesSummaryByMinutes,
-            detail_class=List[Dict[str, Any]]
+            detail_class=List[Dict[str, Any]],
         )
 
     def fetch_prices_by_minutes(
-            self,
-            symbol: str,
-            to: Optional[str] = None,
-            count: Optional[int] = None
+        self, symbol: str, to: Optional[str] = None, count: Optional[int] = None
     ) -> Tuple[PricesSummaryByMinutes, List[PriceHistoryByMinutes]]:
         """
         주식 당일 분봉 연속 조회
@@ -131,7 +124,9 @@ class DomesticQuote(DomesticResource, Quote):
                 break
 
             # get last output
-            to = (histories[-1].full_execution_time - timedelta(minutes=1)).strftime("%H%M%S")
+            to = (histories[-1].full_execution_time - timedelta(minutes=1)).strftime(
+                "%H%M%S"
+            )
             if to <= "090001":
                 break
             count -= 1
@@ -142,12 +137,12 @@ class DomesticQuote(DomesticResource, Quote):
         return summary, full_histories
 
     def _fetch_histories(
-            self,
-            symbol: str,
-            start_date: Optional[Union[str, datetime, date]] = None,
-            end_date: Optional[Union[str, datetime, date]] = None,
-            standard: str = "D",
-            adjust: bool = True
+        self,
+        symbol: str,
+        start_date: Optional[Union[str, datetime, date]] = None,
+        end_date: Optional[Union[str, datetime, date]] = None,
+        standard: str = "D",
+        adjust: bool = True,
     ):
         """
         국내 주식 기간별 조회 fetch one
@@ -183,7 +178,7 @@ class DomesticQuote(DomesticResource, Quote):
             "FID_INPUT_DATE_1": start_date,
             "FID_INPUT_DATE_2": end_date,
             "FID_PERIOD_DIV_CODE": standard,
-            "FID_ORG_ADJ_PRC": "0" if adjust else "1"
+            "FID_ORG_ADJ_PRC": "0" if adjust else "1",
         }
 
         return self.client.fetch_data(
@@ -191,17 +186,17 @@ class DomesticQuote(DomesticResource, Quote):
             headers=headers,
             params=params,
             summary_class=FetchOHLCVSummary,
-            detail_class=List[Dict[str, str]]
+            detail_class=List[Dict[str, str]],
         )
 
     def fetch_histories(
-            self,
-            symbol: str,
-            start_date: Optional[Union[str, datetime, date]] = None,
-            end_date: Optional[Union[str, datetime, date]] = None,
-            standard: str = "D",
-            count: Optional[int] = None,
-            adjust: bool = True,
+        self,
+        symbol: str,
+        start_date: Optional[Union[str, datetime, date]] = None,
+        end_date: Optional[Union[str, datetime, date]] = None,
+        standard: str = "D",
+        count: Optional[int] = None,
+        adjust: bool = True,
     ) -> Tuple[FetchOHLCVSummary, List[FetchOHLCVHistory]]:
         """
         국내 주식 기간별 연속 조회
@@ -227,7 +222,7 @@ class DomesticQuote(DomesticResource, Quote):
                 start_date=start_date,
                 end_date=end_date,
                 standard=standard,
-                adjust=adjust
+                adjust=adjust,
             )
 
             if summary is None:
@@ -254,7 +249,9 @@ class DomesticQuote(DomesticResource, Quote):
 
             # get last output
             last_history = histories[-1]
-            end_date = (last_history.business_date - timedelta(days=1)).strftime("%Y%m%d")
+            end_date = (last_history.business_date - timedelta(days=1)).strftime(
+                "%Y%m%d"
+            )
             count -= 1
 
         if summary is None:

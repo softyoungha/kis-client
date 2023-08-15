@@ -1,6 +1,7 @@
-from datetime import datetime, date, time
-from pydantic import BaseModel, Field, validator
+from datetime import date, datetime, time
 from typing import Optional
+
+from pydantic import BaseModel, Field, validator
 
 from kis.core.enum import Sign
 
@@ -11,6 +12,7 @@ class Price(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/oauth2#L_5c87ba63-740a-4166-93ac-803510bb9c02
     """
+
     iscd_stat_cls_code: str = Field(title="종목상태구분코드")
     marg_rate: float = Field(title="증거금 비율")
     rprs_mrkt_kor_name: str = Field(title="대표시장 한글명")
@@ -89,16 +91,19 @@ class Price(BaseModel):
     ovtm_vi_cls_code: str = Field(title="시간외단일가VI적용구분코드")
     last_ssts_cntg_qty: int = Field(title="최종 공매도 체결 수량")
     invt_caful_yn: str = Field(title="투자유의여부")
-    mrkt_warn_cls_code: str = Field(title="시장경고코드", description="00: 없음/01: 투자주의/02: 투자경고/03: 투자위험")
+    mrkt_warn_cls_code: str = Field(
+        title="시장경고코드", description="00: 없음/01: 투자주의/02: 투자경고/03: 투자위험"
+    )
     short_over_yn: str = Field(title="단기과열여부")
 
     @property
-    def custom(self) -> "PriceCustom":
-        return PriceCustom(**self.dict())
+    def pretty(self) -> "PrettyPrice":
+        return PrettyPrice(**self.dict())
 
 
-class PriceCustom(BaseModel):
-    """국내주식주문/주식현재가 시세 - Response Body output 응답상세 Custom"""
+class PrettyPrice(BaseModel):
+    """국내주식주문/주식현재가 시세 - Response Body output 응답상세 Pretty"""
+
     # about prices
     upper_bound: int = Field(alias="stck_mxpr", title="상한가", example=80900)
     lower_bound: int = Field(alias="stck_llam", title="하한가", example=43700)
@@ -109,14 +114,18 @@ class PriceCustom(BaseModel):
     base: int = Field(alias="stck_sdpr", title="기준가(전일 종가)", example=62300)
 
     # about stock
-    sector_korean: str = Field(alias="bstp_kor_isnm", title="업종 한글 종목명", example='전기.전자')
-    symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example='005930')
-    market_name: str = Field(alias="rprs_mrkt_kor_name", title="대표 시장 한글명", example='KOSPI200')
+    sector_korean: str = Field(
+        alias="bstp_kor_isnm", title="업종 한글 종목명", example="전기.전자"
+    )
+    symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example="005930")
+    market_name: str = Field(
+        alias="rprs_mrkt_kor_name", title="대표 시장 한글명", example="KOSPI200"
+    )
     market_cap: int = Field(alias="hts_avls", title="HTS 시가총액", example=3880359)
     bps: float = Field(alias="bps", title="BPS", example=50817.00)
     eps: float = Field(alias="eps", title="EPS", example=8057.00)
-    pbr: float = Field(alias="pbr", example='1.28')
-    per: float = Field(alias="per", example='8.07')
+    pbr: float = Field(alias="pbr", example="1.28")
+    per: float = Field(alias="per", example="8.07")
 
     diff_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
     diff_volume_rate: float = Field(alias="prdy_vrss_vol_rate", example=183.26)
@@ -128,24 +137,24 @@ class PriceCustom(BaseModel):
         return Sign.from_value(diff_sign)
 
     def __repr__(self):
-        return (
-            f"FetchPrice(symbol='{self.symbol}', "
-            f"current={self.current})"
-        )
+        return f"FetchPrice(symbol='{self.symbol}', " f"current={self.current})"
 
 
 class PricesSummaryByMinutes(BaseModel):
     """
-    국내주식시세/주식당일분봉조회 - Response Body output 응답상세1 Custom
+    국내주식시세/주식당일분봉조회 - Response Body output 응답상세1 Pretty
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-quotations#L_eddbb36a-1d55-461a-b242-3067ba1e5640
     """
-    symbol_name: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example='삼성전자')
+
+    symbol_name: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example="삼성전자")
     diff_rate: float = Field(alias="prdy_ctrt", title="전일 대비율", example=4.41)
     diff_price: int = Field(alias="prdy_vrss", title="전일 대비", example=1000)
     diff_sign: Sign = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
     stck_prdy_clpr: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=62300)
-    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1778208943700)
+    accumulated_amount: int = Field(
+        alias="acml_tr_pbmn", title="누적 거래 대금", example=1778208943700
+    )
     accumulated_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
     current: float = Field(alias="stck_prpr", title="현재가", example=65000)
 
@@ -162,13 +171,20 @@ class PricesSummaryByMinutes(BaseModel):
 
 class PriceHistoryByMinutes(BaseModel):
     """
-    국내주식시세/주식당일분봉조회 - Response Body output2 응답상세2 Custom
+    국내주식시세/주식당일분봉조회 - Response Body output2 응답상세2 Pretty
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-quotations#L_eddbb36a-1d55-461a-b242-3067ba1e5640
     """
-    business_date: date = Field(alias="stck_bsop_date", title="주식 영업 일자", example="20230407")
-    execution_time: time = Field(alias="stck_cntg_hour", title="주식 체결 시간", example="123000")
-    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
+
+    business_date: date = Field(
+        alias="stck_bsop_date", title="주식 영업 일자", example="20230407"
+    )
+    execution_time: time = Field(
+        alias="stck_cntg_hour", title="주식 체결 시간", example="123000"
+    )
+    accumulated_amount: int = Field(
+        alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700
+    )
     volume: int = Field(alias="cntg_vol", title="체결 거래량", example=27099)
     highest: float = Field(alias="stck_hgpr", title="최고가", example=65200)
     current: float = Field(alias="stck_prpr", title="현재가", example=65000)
@@ -198,10 +214,11 @@ class PriceHistoryByMinutes(BaseModel):
 
 class FetchOHLCVSummary(BaseModel):
     """
-    국내주식시세/국내주식기간별시세(일/주/월/년) - Response Body output1 응답상세1 (Custom Columns)
+    국내주식시세/국내주식기간별시세(일/주/월/년) - Response Body output1 응답상세1 (Pretty Columns)
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-quotations#L_a08c3421-e50f-4f24-b1fe-64c12f723c77
     """
+
     # 종목 정보
     symbol: str = Field(alias="stck_shrn_iscd", title="주식 단축 종목코드", example="005930")
     symbol_name: str = Field(alias="hts_kor_isnm", title="HTS 한글 종목명", example="삼성전자")
@@ -212,7 +229,9 @@ class FetchOHLCVSummary(BaseModel):
     per: float = Field(alias="per", title="PER", example=0.00)
     eps: float = Field(alias="eps", title="EPS", example=0)
     pbr: float = Field(alias="pbr", title="PBR", example=0.00)
-    whole_loan_remain_rate: Optional[float] = Field(alias="itewhol_loan_rmnd_ratem", title="전체 융자 잔고 비율", example=0.00)
+    whole_loan_remain_rate: Optional[float] = Field(
+        alias="itewhol_loan_rmnd_ratem", title="전체 융자 잔고 비율", example=0.00
+    )
 
     # 가격 정보
     price_upper_bound: int = Field(alias="stck_mxpr", title="상한가", example=0)
@@ -223,7 +242,9 @@ class FetchOHLCVSummary(BaseModel):
     price_open: int = Field(alias="stck_oprc", title="시가", example=63800)
     price_base: int = Field(alias="stck_prdy_clpr", title="주식 전일 종가", example=61000)
     accumulated_volume: int = Field(alias="acml_vol", title="누적 거래량", example=27476120)
-    accumulated_amount: int = Field(alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700)
+    accumulated_amount: int = Field(
+        alias="acml_tr_pbmn", title="누적 거래 대금", example=1241610558700
+    )
     ask_price: int = Field(alias="askp", title="매도호가", example=65000)
     bid_price: int = Field(alias="bidp", title="매수호가", example=64900)
     volume_rotation: float = Field(alias="vol_tnrt", title="거래량 회전율", example=0.00)
@@ -247,11 +268,14 @@ class FetchOHLCVSummary(BaseModel):
 
 class FetchOHLCVHistory(BaseModel):
     """
-    국내주식시세/국내주식기간별시세(일/주/월/년) - Response Body output2 응답상세2 Custom
+    국내주식시세/국내주식기간별시세(일/주/월/년) - Response Body output2 응답상세2 Pretty
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-quotations#L_a08c3421-e50f-4f24-b1fe-64c12f723c77
     """
-    business_date: date = Field(alias="stck_bsop_date", title="주식 영업 일자", example="20210601")
+
+    business_date: date = Field(
+        alias="stck_bsop_date", title="주식 영업 일자", example="20210601"
+    )
     close: int = Field(alias="stck_clpr", title="주식 종가", example=65000)
     open: int = Field(alias="stck_oprc", title="주식 시가", example=63800)
     high: int = Field(alias="stck_hgpr", title="주식 최고가", example=65000)

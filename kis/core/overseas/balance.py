@@ -1,8 +1,10 @@
-from typing import List, Union, Dict, Any
+from typing import Any, Dict, List, Union
+
 from kis.core.base.resources import Balance
 from kis.core.enum import Exchange
 from kis.core.overseas.client import OverseasResource
-from .schema import Stock, Deposit
+
+from .schema import Deposit, Stock
 
 
 class OverseasBalance(OverseasResource, Balance):
@@ -13,13 +15,15 @@ class OverseasBalance(OverseasResource, Balance):
     """
 
     def _fetch_one(
-            self,
-            exchange: Union[str, Exchange] = None,
-            fk200: str = "",
-            nk200: str = "",
+        self,
+        exchange: Union[str, Exchange] = None,
+        fk200: str = "",
+        nk200: str = "",
     ):
         """주식 잔고 조회"""
-        if not exchange:
+        if exchange:
+            exchange = Exchange.from_value(exchange)
+        else:
             exchange = self.client.exchange
 
         account_prefix, account_suffix = self.client.get_account()
@@ -50,16 +54,16 @@ class OverseasBalance(OverseasResource, Balance):
             headers=headers,
             params=params,
             summary_class=List[Dict[str, Any]],
-            detail_class=Dict[str, Any]
+            detail_class=Dict[str, Any],
         )
 
     def fetch(self) -> List[Stock]:
-        """ 해외주식 잔고 조회 """
+        """해외주식 잔고 조회"""
         result = self._fetch_one()
 
         portfolio, deposit = [
             [Stock(**row) for row in result.summary],
-            Deposit(**result.detail)
+            Deposit(**result.detail),
         ]
         while result.has_next:
             result = self._fetch_one(fk200=result.fk200, nk200=result.nk200)

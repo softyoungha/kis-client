@@ -1,17 +1,23 @@
 import logging
-from typing import Optional, Union, Literal, List, Dict, Any, overload
-from datetime import datetime, date
+from datetime import date, datetime
+from typing import Any, Dict, List, Literal, Optional, Union, overload
+
 from kis.core.base.resources import Order
-from kis.exceptions import KISBadArguments, KISDevModeError, KISNoData
 from kis.core.base.schema import ResponseData
 from kis.core.enum import Exchange
+from kis.exceptions import KISBadArguments, KISDevModeError, KISNoData
 from kis.utils.tool import as_datetime
-from .schema import (
-    OrderData, BidAvailability, CustomBidAvailability, UnExecutedOrder, UnExecutedOrderCustom,
-    ExecutedOrder, CustomExecutedOrder
-)
-from .client import OverseasResource
 
+from .client import OverseasResource
+from .schema import (
+    BidAvailability,
+    ExecutedOrder,
+    OrderData,
+    PrettyBidAvailability,
+    PrettyExecutedOrder,
+    PrettyUnExecutedOrder,
+    UnExecutedOrder,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +26,14 @@ class OverseasOrder(OverseasResource, Order):
     """해외주식 주문 조회"""
 
     def _order(
-            self,
-            order_type: Literal["buy", "sell"],
-            symbol: str,
-            quantity: int,
-            price: Optional[float] = None,
-            order_division: Optional[str] = None,
-            as_market_price: bool = False,
-            exchange: Union[str, Exchange] = None,
+        self,
+        order_type: Literal["buy", "sell"],
+        symbol: str,
+        quantity: int,
+        price: Optional[float] = None,
+        order_division: Optional[str] = None,
+        as_market_price: bool = False,
+        exchange: Union[str, Exchange] = None,
     ) -> OrderData:
         """
         해외주식주문/해외주식 주문
@@ -44,8 +50,11 @@ class OverseasOrder(OverseasResource, Order):
         :param order_division: 주문구분 (00: 지정가, 01: 시장가, etc)
         :param exchange: 거래소
         """
-        if not exchange:
-            exchange = self.client.exchange
+        exchange = exchange or self.client.exchange
+        if self.client.strict:
+            exchange = Exchange.from_value(exchange)
+        else:
+            exchange = Exchange.find_symbol(symbol)
 
         account_prefix, account_suffix = self.client.get_account()
 
@@ -100,23 +109,23 @@ class OverseasOrder(OverseasResource, Order):
             "ORD_QTY": str(quantity),
             "OVRS_ORD_UNPR": str(price),
             "ORD_SVR_DVSN_CD": "0",
-            "ORD_DVSN": order_division
+            "ORD_DVSN": order_division,
         }
         return self.client.send_order(
             "/uapi/overseas-stock/v1/trading/order",
             headers=headers,
             body=data,
-            data_class=OrderData
+            data_class=OrderData,
         ).data
 
     def buy(
-            self,
-            symbol: str,
-            quantity: int,
-            price: Optional[float] = None,
-            order_division: Optional[str] = None,
-            as_market_price: bool = False,
-            exchange: Union[str, Exchange] = None,
+        self,
+        symbol: str,
+        quantity: int,
+        price: Optional[float] = None,
+        order_division: Optional[str] = None,
+        as_market_price: bool = False,
+        exchange: Union[str, Exchange] = None,
     ) -> OrderData:
         """
         주식 매수
@@ -135,17 +144,17 @@ class OverseasOrder(OverseasResource, Order):
             price=price,
             as_market_price=as_market_price,
             order_division=order_division,
-            exchange=exchange
+            exchange=exchange,
         )
 
     def sell(
-            self,
-            symbol: str,
-            quantity: int,
-            price: Optional[float] = None,
-            order_division: Optional[str] = None,
-            as_market_price: bool = False,
-            exchange: Union[str, Exchange] = None,
+        self,
+        symbol: str,
+        quantity: int,
+        price: Optional[float] = None,
+        order_division: Optional[str] = None,
+        as_market_price: bool = False,
+        exchange: Union[str, Exchange] = None,
     ) -> OrderData:
         """
         주식 매도
@@ -164,19 +173,19 @@ class OverseasOrder(OverseasResource, Order):
             price=price,
             as_market_price=as_market_price,
             order_division=order_division,
-            exchange=exchange
+            exchange=exchange,
         )
 
     def _modify(
-            self,
-            modify_type: str,
-            org_no: str,
-            order_no: str,
-            symbol: str,
-            quantity: int = None,
-            price: Optional[float] = None,
-            as_market_price: bool = False,
-            exchange: Union[str, Exchange] = None,
+        self,
+        modify_type: str,
+        org_no: str,
+        order_no: str,
+        symbol: str,
+        quantity: int = None,
+        price: Optional[float] = None,
+        as_market_price: bool = False,
+        exchange: Union[str, Exchange] = None,
     ):
         """
         주문 수정/취소
@@ -196,8 +205,11 @@ class OverseasOrder(OverseasResource, Order):
         :param as_market_price: 시장가 주문 여부
         :param exchange: 거래소
         """
-        if not exchange:
-            exchange = self.client.exchange
+        exchange = exchange or self.client.exchange
+        if self.client.strict:
+            exchange = Exchange.from_value(exchange)
+        else:
+            exchange = Exchange.find_symbol(symbol)
 
         account_prefix, account_suffix = self.client.get_account()
 
@@ -259,39 +271,30 @@ class OverseasOrder(OverseasResource, Order):
             "/uapi/overseas-stock/v1/trading/order-rvsecncl",
             headers=headers,
             body=data,
-            data_class=OrderData
+            data_class=OrderData,
         )
 
     @overload
-    def get_available_amount(
-            self,
-            symbol: str,
-            price: float
-    ) -> CustomBidAvailability:
+    def get_available_amount(self, symbol: str, price: float) -> PrettyBidAvailability:
         ...
 
     @overload
     def get_available_amount(
-            self,
-            symbol: str,
-            price: float,
-            is_market_price: Literal[False]
-    ) -> CustomBidAvailability:
+        self, symbol: str, price: float, is_market_price: Literal[False]
+    ) -> PrettyBidAvailability:
         ...
 
     @overload
     def get_available_amount(
-            self,
-            symbol: str,
-            is_market_price: Literal[True]
-    ) -> CustomBidAvailability:
+        self, symbol: str, is_market_price: Literal[True]
+    ) -> PrettyBidAvailability:
         ...
 
     def get_available_amount(
-            self,
-            symbol: str,
-            price: float,
-            exchange: Union[str, Exchange] = None,
+        self,
+        symbol: str,
+        price: float,
+        exchange: Union[str, Exchange] = None,
     ):
         """
         주문 가능 금액 확인
@@ -312,8 +315,11 @@ class OverseasOrder(OverseasResource, Order):
         if self.is_dev:
             raise KISDevModeError()
 
-        if not exchange:
-            exchange = self.client.exchange
+        exchange = exchange or self.client.exchange
+        if self.client.strict:
+            exchange = Exchange.from_value(exchange)
+        else:
+            exchange = Exchange.find_symbol(symbol)
 
         account_prefix, account_suffix = self.client.get_account()
 
@@ -332,14 +338,14 @@ class OverseasOrder(OverseasResource, Order):
             "/uapi/overseas-stock/v1/trading/inquire-psamount",
             headers=headers,
             params=params,
-            data_class=BidAvailability
+            data_class=BidAvailability,
         ).data
 
     def _fetch_unfilled_orders(
-            self,
-            exchange: Union[str, Exchange] = None,
-            fk200: str = "",
-            nk200: str = "",
+        self,
+        exchange: Union[str, Exchange] = None,
+        fk200: str = "",
+        nk200: str = "",
     ):
         """
         주문 정정/취소 가능 조회
@@ -355,8 +361,9 @@ class OverseasOrder(OverseasResource, Order):
         :param fk200: 연속조회검색조건200
         :param nk200: 연속조회키200
         """
-        if not exchange:
-            exchange = self.client.exchange
+        exchange = exchange or self.client.exchange
+        if self.client.strict:
+            exchange = Exchange.from_value(exchange)
 
         account_prefix, account_suffix = self.client.get_account()
 
@@ -386,12 +393,12 @@ class OverseasOrder(OverseasResource, Order):
             "/uapi/overseas-stock/v1/trading/inquire-nccs",
             headers=headers,
             params=params,
-            data_class=List[Dict[str, Any]]
+            data_class=List[Dict[str, Any]],
         )
 
     def fetch_unexecuted_orders(
-            self,
-            exchange: Union[str, Exchange] = None,
+        self,
+        exchange: Union[str, Exchange] = None,
     ) -> List[UnExecutedOrder]:
         """
         주문 정정/취소 가능 조회
@@ -416,16 +423,16 @@ class OverseasOrder(OverseasResource, Order):
         return items
 
     def _fetch_executed_orders(
-            self,
-            start_date: Union[str, datetime, date],
-            end_date: Union[str, datetime, date],
-            symbol: Optional[str] = None,
-            order_type: Literal["all", "buy", "sell"] = "all",
-            execution_type: Literal["all", "executed", "unexecuted"] = "all",
-            exchange: Union[str, Exchange] = "%",
-            reverse: bool = False,
-            fk200: str = "",
-            nk200: str = "",
+        self,
+        start_date: Union[str, datetime, date],
+        end_date: Union[str, datetime, date],
+        symbol: Optional[str] = None,
+        order_type: Literal["all", "buy", "sell"] = "all",
+        execution_type: Literal["all", "executed", "unexecuted"] = "all",
+        exchange: Union[str, Exchange] = "%",
+        reverse: bool = False,
+        fk200: str = "",
+        nk200: str = "",
     ):
         """
         기간별 주문체결내역 조회 once
@@ -500,18 +507,18 @@ class OverseasOrder(OverseasResource, Order):
             "/uapi/overseas-stock/v1/trading/inquire-ccnl",
             headers=headers,
             params=params,
-            data_class=List[Dict[str, Any]]
+            data_class=List[Dict[str, Any]],
         )
 
     def fetch_executed_orders(
-            self,
-            start_date: Union[str, datetime, date],
-            end_date: Union[str, datetime, date],
-            symbol: Optional[str] = None,
-            order_type: Literal["all", "buy", "sell"] = "all",
-            execution_type: Literal["all", "executed", "unexecuted"] = "all",
-            reverse: bool = False,
-            exchange: Union[str, Exchange] = None
+        self,
+        start_date: Union[str, datetime, date],
+        end_date: Union[str, datetime, date],
+        symbol: Optional[str] = None,
+        order_type: Literal["all", "buy", "sell"] = "all",
+        execution_type: Literal["all", "executed", "unexecuted"] = "all",
+        reverse: bool = False,
+        exchange: Union[str, Exchange] = None,
     ) -> List[ExecutedOrder]:
         """
         기간별 주문체결내역 연속조회
@@ -524,8 +531,11 @@ class OverseasOrder(OverseasResource, Order):
         See https://apiportal.koreainvestment.com/apiservice/apiservice-overseas-stock#L_6d715b38-566f-4045-a08c-4a594d3a3314
         """
 
-        if not exchange:
-            exchange = self.client.exchange
+        exchange = exchange or self.client.exchange
+        if self.client.strict:
+            exchange = Exchange.from_value(exchange)
+        else:
+            exchange = Exchange.find_symbol(symbol)
 
         options = dict(
             start_date=as_datetime(start_date, fmt="%Y%m%d"),
@@ -534,7 +544,7 @@ class OverseasOrder(OverseasResource, Order):
             order_type=order_type,
             execution_type=execution_type,
             exchange=exchange,
-            reverse=reverse
+            reverse=reverse,
         )
 
         # fetch first

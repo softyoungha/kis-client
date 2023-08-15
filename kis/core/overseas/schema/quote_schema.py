@@ -1,6 +1,8 @@
+from datetime import date, datetime
 from typing import Optional
-from datetime import datetime, date
-from pydantic import BaseModel, Field, validator, root_validator
+
+from pydantic import BaseModel, Field, root_validator, validator
+
 from kis.core.enum import Exchange, Sign
 
 
@@ -10,6 +12,7 @@ class Price(BaseModel):
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_3eeac674-072d-4674-a5a7-f0ed01194a81
     """
+
     rsym: str = Field(title="실시간조회종목코드")
     zdiv: float = Field(title="소수점자리수")
     base: float = Field(title="전일종가")
@@ -23,12 +26,12 @@ class Price(BaseModel):
     ordy: str = Field(title="매수가능여부")
 
     @property
-    def custom(self) -> "CustomPrice":
-        return CustomPrice(**self.dict())
+    def pretty(self) -> "PrettyPrice":
+        return PrettyPrice(**self.dict())
 
 
-class CustomPrice(BaseModel):
-    """해외주식현재가/해외주식 현재체결가 - Response body output 응답상세 Custom"""
+class PrettyPrice(BaseModel):
+    """해외주식현재가/해외주식 현재체결가 - Response body output 응답상세 Pretty"""
 
     exchange: Exchange = Field(title="국내종목코드")
     symbol: str = Field(title="실시간조회종목코드")
@@ -53,6 +56,9 @@ class CustomPrice(BaseModel):
     @validator("diff_sign", pre=True)
     def set_diff_sign(cls, diff_sign: str):
         return Sign.from_value(diff_sign)
+
+    def __repr__(self):
+        return f"FetchPrice(symbol='{self.symbol}', " f"current={self.current})"
 
 
 class PriceDetail(BaseModel):
@@ -103,9 +109,7 @@ class PriceDetail(BaseModel):
     sector: str = Field(alias="e_icod", title="업종(섹터)")
     face_value: float = Field(alias="e_parp", title="액면가")
     order_state: str = Field(
-        alias="e_ordyn",
-        title="거래가능여부",
-        description="매수주문 가능 종목 여부. '매매 불가'/'매매 가능'"
+        alias="e_ordyn", title="거래가능여부", description="매수주문 가능 종목 여부. '매매 불가'/'매매 가능'"
     )
     etp_name: str = Field(alias="etyp_nm", title="ETP 분류명")
     _rsym: str = Field(alias="rsym", title="실시간조회종목코드")
@@ -130,10 +134,11 @@ class PriceDetail(BaseModel):
 
 class FetchOHLCVSummary(BaseModel):
     """
-    해외주식현재가/해외주식 기간별시세 - Response output1 응답상세1 Custom
+    해외주식현재가/해외주식 기간별시세 - Response output1 응답상세1 Pretty
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_0e9fb2ba-bbac-4735-925a-a35e08c9a790
     """
+
     exchange: Exchange = Field(title="국내종목코드")
     symbol: str = Field(title="실시간조회종목코드")
     float_point: int = Field(alias="zdiv", title="소수점자리수")
@@ -150,10 +155,11 @@ class FetchOHLCVSummary(BaseModel):
 
 class FetchOHLCVHistory(BaseModel):
     """
-    해외주식현재가/해외주식 기간별시세 - Response output2 응답상세2 Custom
+    해외주식현재가/해외주식 기간별시세 - Response output2 응답상세2 Pretty
 
     See https://apiportal.koreainvestment.com/apiservice/apiservice-domestic-stock-current#L_0e9fb2ba-bbac-4735-925a-a35e08c9a790
     """
+
     business_date: date = Field(alias="xymd", title="일자(YYYYMMDD)")
     close: float = Field(alias="clos", title="종가")
     open: float = Field(alias="open", title="시가")
@@ -161,21 +167,31 @@ class FetchOHLCVHistory(BaseModel):
     low: float = Field(alias="low", title="저가")
     volume: int = Field(alias="tvol", title="거래량")
     amount: float = Field(alias="tamt", title="거래대금")
-    diff_price: float = Field(alias="diff", title="대비", description="해당 일자의 종가와 해당 전일 종가의 차이 (해당일 종가-해당 전일 종가)")
+    diff_price: float = Field(
+        alias="diff",
+        title="대비",
+        description="해당 일자의 종가와 해당 전일 종가의 차이 (해당일 종가-해당 전일 종가)",
+    )
     diff_sign: Sign = Field(alias="sign", title="대비기호")
-    fluc_rate: float = Field(alias="rate", title="등락율", description="해당 전일 대비 / 해당일 종가 * 100")
+    fluc_rate: float = Field(
+        alias="rate", title="등락율", description="해당 전일 대비 / 해당일 종가 * 100"
+    )
     bid_price: float = Field(
         alias="pbid",
         title="매수호가",
-        description="마지막 체결이 발생한 시점의 매수호가. 해당 일자 거래량 0인 경우 값이 수신되지 않음"
+        description="마지막 체결이 발생한 시점의 매수호가. 해당 일자 거래량 0인 경우 값이 수신되지 않음",
     )
-    bid_volume: int = Field(alias="vbid", title="매수호가잔량", description="해당 일자 거래량 0인 경우 값이 수신되지 않음")
+    bid_volume: int = Field(
+        alias="vbid", title="매수호가잔량", description="해당 일자 거래량 0인 경우 값이 수신되지 않음"
+    )
     ask_price: float = Field(
         alias="pask",
         title="매도호가",
-        description="마지막 체결이 발생한 시점의 매도호가. 해당 일자 거래량 0인 경우 값이 수신되지 않음"
+        description="마지막 체결이 발생한 시점의 매도호가. 해당 일자 거래량 0인 경우 값이 수신되지 않음",
     )
-    ask_volume: int = Field(alias="vask", title="매도호가잔량", description="해당 일자 거래량 0인 경우 값이 수신되지 않음")
+    ask_volume: int = Field(
+        alias="vask", title="매도호가잔량", description="해당 일자 거래량 0인 경우 값이 수신되지 않음"
+    )
 
     @validator("business_date", pre=True)
     def set_business_date(cls, business_date: str):
@@ -184,6 +200,3 @@ class FetchOHLCVHistory(BaseModel):
     @validator("diff_sign", pre=True)
     def set_diff_sign(cls, diff_sign: str):
         return Sign.from_value(diff_sign)
-
-
-

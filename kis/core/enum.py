@@ -1,9 +1,12 @@
 from enum import Enum
+from typing import Optional
+
 from kis.exceptions import KISBadArguments
 
 
 class Exchange(str, Enum):
     """거래소 코드"""
+
     KOSPI = "KOSPI"  # 코스피
     KOSDAQ = "KOSDAQ"  # 코스닥
 
@@ -36,14 +39,26 @@ class Exchange(str, Enum):
         else:
             raise KISBadArguments("Wrong type of value")
         if exchange not in (
-                cls.KOSPI,
-                cls.KOSDAQ,
-                cls.NAS,
-                cls.NYS,
-                cls.AMS
+            cls.KOSPI,
+            cls.KOSDAQ,
+            cls.NAS,
+            cls.NYS,
+            cls.AMS,
         ):
-            raise KISBadArguments("Only NAS, NYS, AMS are supported")
+            raise KISBadArguments("Only KOSPI, KOSDAQ, NAS, NYS, AMS are supported")
         return exchange
+
+    @classmethod
+    def find_symbol(cls, symbol: str) -> Optional["Exchange"]:
+        """입력받은 symbol의 거래소를 찾아서 반환합니다. 없으면 None을 반환합니다."""
+        from kis.core.master import MasterBook
+
+        df = MasterBook.get("USA")
+        df = df.loc[df["symbol"] == symbol]
+        if len(df) == 0:
+            return None
+        value = df["exchange"].values[0]
+        return cls.from_value(value)
 
     @property
     def master_file_name(self):
@@ -101,20 +116,21 @@ class Sign(str, Enum):
 
     @classmethod
     def from_value(cls, value: str):
-        """ 한국투자증권 코드를 Sign Enum으로 변환 """
+        """한국투자증권 코드를 Sign Enum으로 변환"""
         if value == "1":
             return cls.CEILING
-        elif value == "2":
+        if value == "2":
             return cls.INCREASING
-        elif value == "3":
+        if value == "3":
             return cls.UNCHANGED
-        elif value == "4":
+        if value == "4":
             return cls.FLOOR
         return cls.DECREASING
 
 
 class OverseasOrderPrice(str, Enum):
-    """ 주문가격구분 """
+    """주문가격구분"""
+
     LIMIT = "LIMIT"  # 지정가
     MARKET = "MARKET"  # 시장가
     LOO = "LOO"  # 장개시지정가
@@ -133,4 +149,3 @@ class OverseasOrderPrice(str, Enum):
         if self.name == "LOC":
             return "34"
         return "00"
-

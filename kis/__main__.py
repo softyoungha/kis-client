@@ -1,19 +1,21 @@
-from kis import www
-from click.testing import CliRunner
-from streamlit.__main__ import main
+import click
+
+from kis.command.config import attach_config_group
+from kis.utils.click_group import OrderedGroup
+
+
+def create_entrypoint():
+    """click endtrypoint"""
+
+    @click.group(cls=OrderedGroup)
+    def entrypoint():
+        pass
+
+    attach_config_group(entrypoint)
+
+    return entrypoint
 
 
 if __name__ == "__main__":
-    args = [
-        "run",
-        www.__file__,
-        "--server.runOnSave", "True"
-    ]
-    print(args)
-    runner = CliRunner()
-    runner.invoke(
-        main,
-        ["run", www.__file__, "--server.runOnSave", "True"],
-        prog_name="streamlit",
-        catch_exceptions=True
-    )
+    run: click.BaseCommand = create_entrypoint()
+    run()

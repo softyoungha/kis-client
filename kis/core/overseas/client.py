@@ -1,27 +1,34 @@
-from typing import Optional, Union, TYPE_CHECKING
 from functools import cached_property
+from typing import TYPE_CHECKING, Optional, Union
+
+import requests
 from pydantic import validator
+
 from kis.core.base.client import KisClientBase
 from kis.core.enum import Exchange
+from kis.core.master import MasterBook
+from kis.core.overseas.schema import Currency
 from kis.exceptions import KISBadArguments
 
 if TYPE_CHECKING:
-    from .quote import OverseasQuote
-    from .order import OverseasOrder
     from .balance import OverseasBalance
+    from .order import OverseasOrder
+    from .quote import OverseasQuote
 
 
 class OverseasClient(KisClientBase):
     """해외 주식 전용 Client"""
+
     NAME = "OVERSEAS"
+    SYMBOL_MASTER = MasterBook.get("USA")
 
     def __init__(
-            self,
-            is_dev: bool = True,
-            app_key: Optional[str] = None,
-            app_secret: Optional[str] = None,
-            account: Optional[str] = None,
-            exchange: Union[str, Exchange] = None
+        self,
+        is_dev: bool = True,
+        app_key: Optional[str] = None,
+        app_secret: Optional[str] = None,
+        account: Optional[str] = None,
+        exchange: Union[str, Exchange] = None,
     ):
         super().__init__(
             is_dev=is_dev,
@@ -59,24 +66,42 @@ class OverseasClient(KisClientBase):
         """
         headers = {"tr_id": "JTTT3010R"}
         res = self.session.post(
-            "/uapi/overseas-stock/v1/trading/dayornight",
-            headers=headers
+            "/uapi/overseas-stock/v1/trading/dayornight", headers=headers
         )
         return res.json()["output"]["PSBL_YN"] == "N"
+
+    @staticmethod
+    def get_currency() -> Currency:
+        res = requests.get(
+            "https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD"
+        )
+        data = res.json()[0]
+        return Currency(
+            price=data["basePrice"],
+            opening=data["openingPrice"],
+            change=data["changePrice"],
+            buying=data["cashBuyingPrice"],
+            selling=data["cashSellingPrice"],
+            sending=data["ttBuyingPrice"],
+            receiving=data["ttSellingPrice"],
+        )
 
     @cached_property
     def quote(self) -> "OverseasQuote":
         from .quote import OverseasQuote
+
         return OverseasQuote(client=self)
 
     @cached_property
     def order(self) -> "OverseasOrder":
         from .order import OverseasOrder
+
         return OverseasOrder(client=self)
 
     @cached_property
     def balance(self) -> "OverseasBalance":
         from .balance import OverseasBalance
+
         return OverseasBalance(client=self)
 
 
