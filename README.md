@@ -40,6 +40,12 @@ cd kis-client
 # 가상환경 생성
 python -m venv venv
 
+# 가상환경 activate(windows)
+./venv/Script/activate
+
+# 가상환경 activate(linux/macOS)
+source venv/bin/activate
+
 # 필요 라이브러리 설치
 pip install -r requirements.txt
 
@@ -173,9 +179,9 @@ my_balance = client.balance.fetch()
 
 각 group별 메소드 사용법은 테스트 코드에서 확인하실 수 있습니다.
 
-- tests/unit/domestic/test_balance.py
-- tests/unit/domestic/test_order.py
-- tests/unit/domestic/test_quote.py
+- [tests/unit/domestic/test_balance.py](./tests/unit/domestic/test_balance.py)
+- [tests/unit/domestic/test_order.py](./tests/unit/domestic/test_order.py)
+- [tests/unit/domestic/test_quote.py](./tests/unit/domestic/test_quote.py)
 
 
 ## 2. OverseasClient - 해외 주식
@@ -199,20 +205,45 @@ my_balance = client.balance.fetch()
 
 각 group별 메소드 사용법은 테스트 코드에서 확인하실 수 있습니다.
 
-- tests/unit/overseas/test_balance.py
-- tests/unit/overseas/test_order.py
-- tests/unit/overseas/test_quote.py
+- [tests/unit/overseas/test_balance.py](./tests/unit/overseas/test_balance.py)
+- [tests/unit/overseas/test_order.py](./tests/unit/overseas/test_order.py)
+- [tests/unit/overseas/test_quote.py](./tests/unit/overseas/test_quote.py)
 
 ## 3. Test 코드 실행방법
 
-> **[주의]** 테스트 코드는 반드시 모의투자 신청 후 받은 모의투자 계정으로 실행하세요.
-> test_order.py 에서는 실제 주식 매수/매도가 일어나므로 주의해야합니다.
+> **[주의]**
+> 
+> 테스트 코드는 반드시 모의투자 신청 후 받은 모의투자 계정으로 실행하세요.test_order.py 에서는 실제 주식 매수/매도가 일어나므로 주의해야합니다.
 > 발생한 문제는 본 레포지토리에서 책임지지 않습니다.
 
+테스트 코드를 실행하기 위해서는 KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT 환경변수에 각각 app_key, app_secret, account 를 먼저 선언해야 합니다.
+
+```bash
+# 환경변수 입력 windows git bash, linux, macOS
+export KIS_APP_KEY="xxx"
+export KIS_APP_SECRET="yyy"
+export KIS_ACCOUNT="xxxxxxxx-xx"
+```
+
+```powershell
+# windows cmd, powershell
+set KIS_APP_KEY="xxx"
+set KIS_APP_SECRET="yyy"
+set KIS_ACCOUNT="xxxxxxxx-xx"
+```
+
+테스트 실행은 다음과 같이 cli 로 직접 실행하거나,
+```
+# 단순 실행
+pytest
+
+# html report 생성
+pytest --html reports/report.html --self-contained-html --capture=tee-sys
+```
 
 ## 4. 종목 리스트 조회
 
-전체 종목 리스트를 조회해서 python DataFrame 형태로 가져올 수 있습니다.
+전체 종목 리스트를 조회해서 pandas DataFrame 형태로 가져올 수 있습니다.
 
 ```python
 from kis.core import MasterBook
