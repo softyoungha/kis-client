@@ -25,8 +25,8 @@ kis-client는 실계좌에서의 매수/매도 주문을 전송할 수 있습니
 
 ## Setting
 
-kis-client 를 사용하기 위해서는 먼저 한국투자증권 페이지에서 OpenAPI 개발자로 신청해야 합니다.
-개발자 신청 후 받은 app_key, app_secret 을 활용하여 작동합니다.
+kis-client 를 사용하기 위해서는 먼저 [한국투자증권 페이지](https://apiportal.koreainvestment.com/apiservice/oauth2#L_5c87ba63-740a-4166-93ac-803510bb9c02) OpenAPI Developer로 신청해야 합니다.
+신청 후 받은 app_key, app_secret 을 활용하여 작동합니다.
 
 > 현재 kis-client는 python 3.8 버전에서 정상 작동합니다.
 
@@ -275,8 +275,8 @@ usa_df = MasterBook.get("USA")
 
 ### 1. pydantic model support
 
-한국투자증권에서 제공하는 raw response 각 field들에 대해서 pydantic model을 정의하여 validation을 거칩니다.
-raw response는 전부 `str` type 데이터이지만 먼저 정의해놓은 pydantic BaseModel을 통해 각 field들의 type을 변환합니다.
+한국투자증권 API로부터 제공받는 raw response는 다음과 같이 `str` type 데이터이지만,
+kis-client에서는 이를 pydantic BaseModel로 변환하여 각 field들의 type을 자동 변환합니다.
 
 ```python
 # from kis.core.domestic.schema.quote_schema import Price
@@ -301,7 +301,7 @@ class Price(BaseModel):
 
 각 field마다 type에 맞추어 str/float/int/bool 등으로 변환해주는 작업을 진행하였습니다.
 
-> 잘못된 type의 field가 있을 경우 Issue로 알려주시면 반영하겠습니다. 
+> 잘못된 type의 field가 있을 경우 Issue로 알려주시면 반영하겠습니다.
 
 IDE(Pycharm, VSCode)를 활용한다면 type annotation을 통해 쉽게 사용할 수 있는 Field를 찾을 수 있습니다.
 
