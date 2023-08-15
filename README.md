@@ -507,7 +507,7 @@ class Price(BaseModel):
 
 <details>
 <summary>Pretty 예시 - PrettyPrice class </summary>
-</details>
+
 
 ```python
 
@@ -538,6 +538,8 @@ class PrettyPrice(BaseModel):
     diff_sign: Sign = Field(alias="prdy_vrss_sign", title="전일 대비 부호", example="2")
     ...
 ```
+
+</details>
 
 response를 받아온 뒤 `.pretty` 프로퍼티로 Pretty class로 변환할 수 있습니다.
 
