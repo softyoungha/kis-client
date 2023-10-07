@@ -69,7 +69,13 @@ python -m kis config show
 
 ## kis-client configuration
 
-### `kis config init`
+다음의 여러가지 방법으로 kis client 환경 초기 세팅을 설정할 수 있습니다.
+
+1. cli로 설정: `kis config init`
+2. 환경 변수 사용
+3. python 내부에서 직접 입력
+
+### 1. cli로 설정: `kis config init`
 
 다음의 cli로 kis-client에 필요한 configuration을 설정합니다.
 
@@ -116,23 +122,7 @@ client.quote.fetch_current_price("005930")
 
 
 
-### 직접 입력
-
-`kis config init`을 먼저 하지 않더라도 credential 정보를 알고 있다면 python 내부에서 직접 입력하여 사용할 수 있습니다.
-
-```python
-# account, app_key, app_secret, is_dev(모의투자여부) 모두 입력되어야합니다.
-client = DomesticClient(
-    account="xxxxxxxx-xx",
-    app_key="xxx",
-    app_secret="yyy",
-    is_dev=True,
-)
-```
-
-
-
-### 환경변수 사용
+### 2. 환경변수 사용
 
 환경변수로 입력받은 정보를 사용할 수 있습니다.
 ```bash
@@ -150,6 +140,25 @@ set KIS_ACCOUNT="xxxxxxxx-xx"
 ```python
 # is_dev(모의투자여부)만 입력되고 나머지는 환경변수로 입력받음
 client = DomesticClient(is_dev=True)
+```
+
+
+
+
+### python 내부에서 직접 입력
+
+`kis config init`을 먼저 하지 않더라도 credential 정보를 알고 있다면 python 내부에서 직접 입력하여 사용할 수 있습니다.
+
+```python
+# account, app_key, app_secret, is_dev(모의투자여부) 모두 입력되어야합니다.
+# is_dev=True: 모의투자 계좌 사용
+# is_dev=False: 실계좌 사용
+client = DomesticClient(
+    account="xxxxxxxx-xx",
+    app_key="xxx",
+    app_secret="yyy",
+    is_dev=True,
+)
 ```
 
 
@@ -214,12 +223,12 @@ my_balance = client.balance.fetch()
 > **[주의]**
 > 
 > 테스트 코드는 반드시 모의투자 신청 후 받은 모의투자 계정으로 실행하세요.test_order.py 에서는 실제 주식 매수/매도가 일어나므로 주의해야합니다.
-> 발생한 문제는 본 레포지토리에서 책임지지 않습니다.
+> 발생한 문제는 책임지지 않습니다.
 
 테스트 코드를 실행하기 위해서는 KIS_APP_KEY, KIS_APP_SECRET, KIS_ACCOUNT 환경변수에 각각 app_key, app_secret, account 를 먼저 선언해야 합니다.
 
 ```bash
-# 환경변수 입력 windows git bash, linux, macOS
+# 환경변수 입력 linux, macOS, windows git bash
 export KIS_APP_KEY="xxx"
 export KIS_APP_SECRET="yyy"
 export KIS_ACCOUNT="xxxxxxxx-xx"
@@ -269,6 +278,7 @@ amex_df = MasterBook.get("amex")
 # 미국 거래소 전체(nasdaq + nyse + amex) 종목 리스트 조회
 usa_df = MasterBook.get("USA")
 ```
+
 
 
 # Advanced
